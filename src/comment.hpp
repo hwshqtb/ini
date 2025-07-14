@@ -71,7 +71,7 @@ namespace hwshqtb {
         template <>
         std::string join(const comment_lower_part& v, const join_format& fmt) {
             if (v.contents.empty())
-                return "";
+                return "\n";
             std::string result;
             std::size_t index = 0;
             if (v.same_line) {
@@ -81,8 +81,6 @@ namespace hwshqtb {
             while (index < v.contents.size()) {
                 result += "#!" + v.contents[index++] + "\n";
             }
-            if (v.contents.size())
-                result.pop_back();
             return result;
         }
     }
