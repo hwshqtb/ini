@@ -201,7 +201,7 @@ namespace hwshqtb {
                 }
             }
             template <typename P>
-            std::enable_if<std::is_constructible<value_type, P>::value>::type insert(P&& value) {
+            typename std::enable_if<std::is_constructible<value_type, P>::value>::type insert(P&& value) {
                 auto it = _map.find(value.first);
                 if (it == _map.end()) {
                     _container.push_back(std::forward<P>(value));
@@ -229,7 +229,7 @@ namespace hwshqtb {
                 return it->second;
             }
             template <typename P>
-            std::enable_if<std::is_constructible<value_type, P>::value, iterator>::type insert(const_iterator hint, P&& value) {
+            typename std::enable_if<std::is_constructible<value_type, P>::value, iterator>::type insert(const_iterator hint, P&& value) {
                 auto it = _map.find(value.first);
                 if (it == _map.end()) {
                     _container.insert(hint, std::forward<P>(value));
@@ -579,7 +579,7 @@ namespace hwshqtb {
         };
 
         struct key_equal_to {
-            constexpr bool operator()(const key& lhs, const key& rhs) const {
+            bool operator()(const key& lhs, const key& rhs) const {
                 return lhs.first == rhs.first;
             }
         };
@@ -816,10 +816,14 @@ namespace hwshqtb {
             if (sv.front() == '\"' || sv.front() == '\'') {
                 char quote = sv.front();
                 sv.remove_prefix(1);
-                for (const char* ptr = sv.data(); ptr != sv.data() + sv.size(); ++ptr) {
-                    if (*ptr == '\\') {
-                        if (++ptr == sv.data() + sv.size()) return {sv.data(), false};
-                        switch (*ptr) {
+                while (sv.size()) {
+                    char c = sv.front();
+                    sv.remove_prefix(1);
+                    if (c == '\\') {
+                        if (sv.empty()) return {sv.data(), false};
+                        c = sv.front();
+                        sv.remove_prefix(1);
+                        switch (c) {
                             case '0': v += '\0'; break;
                             case 'a': v += '\a'; break;
                             case 'b': v += '\b'; break;
@@ -836,7 +840,6 @@ namespace hwshqtb {
                                 std::uint64_t codepoint;
                                 if (const auto& [nsv, succeed] = impl::parse_fixed_size_integer(sv, codepoint, 4); sv = nsv, !succeed)
                                     return {sv, false};
-                                sv.remove_prefix(4);
                                 v += impl::ucs2_to_utf8(codepoint);
                                 break;
                             }
@@ -845,18 +848,15 @@ namespace hwshqtb {
                                 std::uint64_t codepoint;
                                 if (const auto& [nsv, succeed] = impl::parse_fixed_size_integer(sv, codepoint, 8); sv = nsv, !succeed)
                                     return {sv, false};
-                                sv.remove_prefix(8);
                                 v += impl::ucs4_to_utf8(codepoint);
                                 break;
                             }
                             default: return {sv, false};
                         }
                     }
-                    else if (*ptr == quote) {
-                        sv.remove_prefix(ptr - sv.data() + 1);
+                    else if (c == quote)
                         return {sv, true};
-                    }
-                    v += *ptr;
+                    else v += c;
                 }
             }
             return {sv.data(), false};
@@ -1002,8 +1002,8 @@ namespace hwshqtb {
                     if (end == std::string_view::npos)
                         sv.remove_prefix(sv.size());
                     else sv.remove_prefix(end + 1);
-                    remove_blank(sv);
                 }
+                remove_blank(sv);
             }
             while (sv.substr(0, 2) == "#!") {
                 sv.remove_prefix(2);
@@ -1027,10 +1027,11 @@ namespace hwshqtb {
                 result = " #" + v.contents.front() + "\n";
                 index = 1;
             }
-            else result = "\n";
             while (index < v.contents.size()) {
                 result += "#!" + v.contents[index++] + "\n";
             }
+            if (v.contents.size())
+                result.pop_back();
             return result;
         }
     }
@@ -1197,6 +1198,7 @@ namespace hwshqtb {
                 }
                 else return {sv, false};
             }
+            return {sv, false};
         }
 
         template <>
@@ -1228,15 +1230,18 @@ namespace hwshqtb {
         template <>
         parse_status parse(std::string_view sv, key& v) {
             v.first = "";
-            v.second = true;
+            v.second = false;
             if (sv.empty()) return {sv, false};
-            if (sv.substr(0, 1) == "\"" || sv.substr(0, 1) == "\'")
-                return parse(sv, v.first);
+            if (sv.substr(0, 1) == "\"" || sv.substr(0, 1) == "\'") {
+                const auto& r = parse(sv, v.first);
+                if (r.succeed)
+                    v.second = true;
+                return r;
+            }
             std::size_t end = sv.find_first_not_of("1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-");
             if (end == 0)
                 return {sv, false};
             v.first.assign(sv.data(), end);
-            v.second = false;
             sv.remove_prefix(end);
             return {sv, true};
         }
@@ -1258,6 +1263,8 @@ namespace hwshqtb {
             if (const auto& [nsv, succeed] = parse(sv, rc.upper); sv = nsv, !succeed)
                 return {sv, false};
             remove_space(sv);
+            if (sv.empty())
+                return {sv, true};
             if (const auto& [nsv, succeed] = parse(sv, k); sv = nsv, !succeed)
                 return {sv, false};
             remove_space(sv);
@@ -1277,9 +1284,10 @@ namespace hwshqtb {
 
         template <>
         std::string join(const key_value_pair& v, const join_format& fmt) {
+            std::string lower = join(v.second.second.lower, fmt);
             return join(v.second.second.upper, fmt) +
-                join(v.first, fmt) + (fmt.space_around_eq ? " = " : "=") + join(*v.second.first, fmt) +
-                join(v.second.second.lower, fmt);
+                join(v.first, fmt) + (fmt.space_around_eq ? " = " : "=") + join(*v.second.first, fmt)
+                + (lower.substr(0, 2) == "#!" ? "\n" : "") + lower;
         }
 
         template <>
@@ -1307,10 +1315,14 @@ namespace hwshqtb {
                 if (sv.substr(0, 1) == "[")
                     break;
                 key_value_pair p;
-                if (const auto& [nsv, succeed] = parse(sv, p); sv = nsv, !succeed)
-                    return {sv, false};
-                map.insert(std::move(p));
-                remove_blank(sv);
+                if (const auto& [nsv, succeed] = parse(sv, p); succeed) {
+                    if (p.first.first == "" && !p.first.second)
+                        break;
+                    sv = nsv;
+                    map.insert(std::move(p));
+                    remove_blank(sv);
+                }
+                else return {sv, false};
             }
             return {sv, true};
         }
@@ -1321,7 +1333,7 @@ namespace hwshqtb {
                 '[' + join(v.first, fmt) + ']' + join(v.second.c.lower) + '\n';
             for (const auto& kv : v.second.kvs)
                 result += join(kv, fmt);
-            result += '\n';
+            result += "\n\n";
             return result;
         }
 
@@ -1346,10 +1358,10 @@ namespace hwshqtb {
 
         template <>
         std::string join(const table& v, const join_format& fmt) {
-            std::string result = join(v.c.lower, fmt);
+            std::string result = join(v.c.lower, fmt) + "\n\n";
             for (const auto& kv : v.sections)
                 result += join(kv, fmt);
-            return result;
+            return result + join(v.c.upper, fmt);
         }
     }
 }
