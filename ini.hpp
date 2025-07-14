@@ -1356,7 +1356,10 @@ namespace hwshqtb {
 
         template <>
         std::string join(const table& v, const join_format& fmt) {
-            std::string result = join(v.c.lower, fmt) + "\n";
+            std::string result = join(v.c.lower, fmt);
+            if (result == "\n")
+                result.pop_back();
+            else result += "\n";
             for (const auto& kv : v.sections)
                 result += join(kv, fmt);
             return result + join(v.c.upper, fmt);
