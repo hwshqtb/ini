@@ -1020,7 +1020,7 @@ namespace hwshqtb {
         template <>
         std::string join(const comment_lower_part& v, const join_format& fmt) {
             if (v.contents.empty())
-                return "";
+                return "\n";
             std::string result;
             std::size_t index = 0;
             if (v.same_line) {
@@ -1030,8 +1030,6 @@ namespace hwshqtb {
             while (index < v.contents.size()) {
                 result += "#!" + v.contents[index++] + "\n";
             }
-            if (v.contents.size())
-                result.pop_back();
             return result;
         }
     }
@@ -1330,10 +1328,10 @@ namespace hwshqtb {
         template <>
         std::string join(const key_section_pair& v, const join_format& fmt) {
             std::string result = join(v.second.c.upper, fmt) +
-                '[' + join(v.first, fmt) + ']' + join(v.second.c.lower) + '\n';
+                '[' + join(v.first, fmt) + ']' + join(v.second.c.lower);
             for (const auto& kv : v.second.kvs)
                 result += join(kv, fmt);
-            result += "\n\n";
+            result += "\n";
             return result;
         }
 
@@ -1358,7 +1356,7 @@ namespace hwshqtb {
 
         template <>
         std::string join(const table& v, const join_format& fmt) {
-            std::string result = join(v.c.lower, fmt) + "\n\n";
+            std::string result = join(v.c.lower, fmt) + "\n";
             for (const auto& kv : v.sections)
                 result += join(kv, fmt);
             return result + join(v.c.upper, fmt);
