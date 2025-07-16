@@ -1197,7 +1197,10 @@ const T& as_##T()const {\
 
             template <typename T>
             void set(T&& v) {
-                *_v = std::forward<T>(v);
+                if (_v == nullptr)
+                    _v = new base_type(std::forward<T>(v));
+                else
+                    *_v = std::forward<T>(v);
             }
 
             template <typename Iter>
