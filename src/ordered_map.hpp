@@ -135,7 +135,13 @@ namespace hwshqtb {
                 if (it == _map.end()) {
                     _container.emplace_back(key, mapped_type{});
                     _map[key] = --_container.end();
+                    return (--_container.end())->second;
                 }
+                return it->second->second;
+            }
+
+            const mapped_type& operator[](const key_type& key)const {
+                auto it = _map.find(key);
                 return it->second->second;
             }
 
@@ -175,22 +181,22 @@ namespace hwshqtb {
                 auto it = _map.find(value.first);
                 if (it == _map.end()) {
                     _container.push_back(value);
-                    _map[value.first] = --_container.end();
+                    _map[_container.back().first] = --_container.end();
                 }
             }
             void insert(value_type&& value) {
                 auto it = _map.find(value.first);
                 if (it == _map.end()) {
                     _container.push_back(std::move(value));
-                    _map[value.first] = --_container.end();
+                    _map[_container.back().first] = --_container.end();
                 }
             }
             template <typename P>
-            typename std::enable_if<std::is_constructible<value_type, P>::value>::type insert(P&& value) {
+            typename std::enable_if<std::is_constructible<value_type, P>::value && std::is_same<typename std::decay<P>::type, value_type>::value>::type insert(P&& value) {
                 auto it = _map.find(value.first);
                 if (it == _map.end()) {
                     _container.push_back(std::forward<P>(value));
-                    _map[value.first] = --_container.end();
+                    _map[_container.back().first] = --_container.end();
                 }
             }
             iterator insert(const_iterator hint, const value_type& value) {
@@ -198,7 +204,7 @@ namespace hwshqtb {
                 if (it == _map.end()) {
                     _container.insert(hint, value);
                     auto new_it = --_container.end();
-                    _map[value.first] = new_it;
+                    _map[_container.back().first] = new_it;
                     return new_it;
                 }
                 return it->second;
@@ -208,18 +214,18 @@ namespace hwshqtb {
                 if (it == _map.end()) {
                     _container.insert(hint, std::move(value));
                     auto new_it = --_container.end();
-                    _map[value.first] = new_it;
+                    _map[_container.back().first] = new_it;
                     return new_it;
                 }
                 return it->second;
             }
             template <typename P>
-            typename std::enable_if<std::is_constructible<value_type, P>::value, iterator>::type insert(const_iterator hint, P&& value) {
+            typename std::enable_if<std::is_constructible<value_type, P>::value&& std::is_same<typename std::decay<P>::type, value_type>::value, iterator>::type insert(const_iterator hint, P&& value) {
                 auto it = _map.find(value.first);
                 if (it == _map.end()) {
                     _container.insert(hint, std::forward<P>(value));
                     auto new_it = --_container.end();
-                    _map[value.first] = new_it;
+                    _map[_container.back().first] = new_it;
                     return new_it;
                 }
                 return it->second;

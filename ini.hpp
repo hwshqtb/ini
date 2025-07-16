@@ -6,6 +6,12 @@
 #ifndef HWSHQTB__INI__GLOBEL_HPP
 #define HWSHQTB__INI__GLOBEL_HPP
 
+#ifndef HWSHQTB__NOT_HEADER_ONLY
+#define HWSHQTB__INLINE inline
+#else
+#define HWSHQTB__INLINE
+#endif
+
 #include <cstdint>
 #include <type_traits>
 #include <string>
@@ -150,7 +156,13 @@ namespace hwshqtb {
                 if (it == _map.end()) {
                     _container.emplace_back(key, mapped_type{});
                     _map[key] = --_container.end();
+                    return (--_container.end())->second;
                 }
+                return it->second->second;
+            }
+
+            const mapped_type& operator[](const key_type& key)const {
+                auto it = _map.find(key);
                 return it->second->second;
             }
 
@@ -190,22 +202,22 @@ namespace hwshqtb {
                 auto it = _map.find(value.first);
                 if (it == _map.end()) {
                     _container.push_back(value);
-                    _map[value.first] = --_container.end();
+                    _map[_container.back().first] = --_container.end();
                 }
             }
             void insert(value_type&& value) {
                 auto it = _map.find(value.first);
                 if (it == _map.end()) {
                     _container.push_back(std::move(value));
-                    _map[value.first] = --_container.end();
+                    _map[_container.back().first] = --_container.end();
                 }
             }
             template <typename P>
-            typename std::enable_if<std::is_constructible<value_type, P>::value>::type insert(P&& value) {
+            typename std::enable_if<std::is_constructible<value_type, P>::value && std::is_same<typename std::decay<P>::type, value_type>::value>::type insert(P&& value) {
                 auto it = _map.find(value.first);
                 if (it == _map.end()) {
                     _container.push_back(std::forward<P>(value));
-                    _map[value.first] = --_container.end();
+                    _map[_container.back().first] = --_container.end();
                 }
             }
             iterator insert(const_iterator hint, const value_type& value) {
@@ -213,7 +225,7 @@ namespace hwshqtb {
                 if (it == _map.end()) {
                     _container.insert(hint, value);
                     auto new_it = --_container.end();
-                    _map[value.first] = new_it;
+                    _map[_container.back().first] = new_it;
                     return new_it;
                 }
                 return it->second;
@@ -223,18 +235,18 @@ namespace hwshqtb {
                 if (it == _map.end()) {
                     _container.insert(hint, std::move(value));
                     auto new_it = --_container.end();
-                    _map[value.first] = new_it;
+                    _map[_container.back().first] = new_it;
                     return new_it;
                 }
                 return it->second;
             }
             template <typename P>
-            typename std::enable_if<std::is_constructible<value_type, P>::value, iterator>::type insert(const_iterator hint, P&& value) {
+            typename std::enable_if<std::is_constructible<value_type, P>::value&& std::is_same<typename std::decay<P>::type, value_type>::value, iterator>::type insert(const_iterator hint, P&& value) {
                 auto it = _map.find(value.first);
                 if (it == _map.end()) {
                     _container.insert(hint, std::forward<P>(value));
                     auto new_it = --_container.end();
-                    _map[value.first] = new_it;
+                    _map[_container.back().first] = new_it;
                     return new_it;
                 }
                 return it->second;
@@ -570,25 +582,35 @@ namespace hwshqtb {
             comment_lower_part lower;
         };
 
-        using key = std::pair<std::string, bool>;
+        struct key {
+            std::string name;
+            bool is_quoted;
+
+            key();
+
+            key(const std::string& c);
+
+            key(const char* str):
+                key(std::string(str)) {}
+        };
 
         struct key_hash {
             std::size_t operator()(const key& s)const noexcept {
-                return std::hash<std::string>{}(s.first);
+                return std::hash<std::string>{}(s.name);
             }
         };
 
         struct key_equal_to {
             bool operator()(const key& lhs, const key& rhs) const {
-                return lhs.first == rhs.first;
+                return lhs.name == rhs.name;
             }
         };
 
         class value;
 
-        using array = std::deque<value*>;
+        using array = std::deque<value>;
 
-        using node = std::pair<value*, comment>;
+        using node = std::pair<value, comment>;
 
         using key_value_pair = std::pair<key, node>;
 
@@ -634,7 +656,8 @@ namespace hwshqtb {
                 return "";
             };
 
-        } global_format;
+        };
+        HWSHQTB__INLINE join_format global_format;
 
         struct parse_status {
             std::string_view nsv;
@@ -642,93 +665,93 @@ namespace hwshqtb {
         };
 
         template <typename T>
-        parse_status parse(std::string_view sv, T& v) {
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, T& v) {
             static_assert(true, "T must be a valid ini type");
             return {sv, false};
         }
 
         template <typename T>
-        std::string join(const T& v, const join_format& fmt = global_format) {
+        HWSHQTB__INLINE std::string join(const T& v, const join_format& fmt = global_format) {
             static_assert(true, "T must be a valid ini type");
             return "";
         }
 
         template <>
-        parse_status parse(std::string_view sv, std::string& v); // both key and string
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, std::string& v); // both key and string
         template <>
-        parse_status parse(std::string_view sv, integer& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, integer& v);
         template <>
-        parse_status parse(std::string_view sv, floating& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, floating& v);
         template <>
-        parse_status parse(std::string_view sv, boolean& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, boolean& v);
         template <>
-        parse_status parse(std::string_view sv, comment_upper_part& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, comment_upper_part& v);
         template <>
-        parse_status parse(std::string_view sv, comment_lower_part& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, comment_lower_part& v);
         template <>
-        parse_status parse(std::string_view sv, value& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, value& v);
         template <>
-        parse_status parse(std::string_view sv, key& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, key& v);
         template <>
-        parse_status parse(std::string_view sv, array& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, array& v);
         template <>
-        parse_status parse(std::string_view sv, key_value_pair& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, key_value_pair& v);
         template <>
-        parse_status parse(std::string_view sv, key_section_pair& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, key_section_pair& v);
         template <>
-        parse_status parse(std::string_view sv, table& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, table& v);
 
         template <>
-        std::string join(const std::string& v, const join_format& fmt); // both key and string
+        HWSHQTB__INLINE std::string join(const std::string& v, const join_format& fmt); // both key and string
         template <>
-        std::string join(const integer& v, const join_format& fmt);
+        HWSHQTB__INLINE std::string join(const integer& v, const join_format& fmt);
         template <>
-        std::string join(const floating& v, const join_format& fmt);
+        HWSHQTB__INLINE std::string join(const floating& v, const join_format& fmt);
         template <>
-        std::string join(const boolean& v, const join_format& fmt);
+        HWSHQTB__INLINE std::string join(const boolean& v, const join_format& fmt);
         template <>
-        std::string join(const comment_upper_part& v, const join_format& fmt);
+        HWSHQTB__INLINE std::string join(const comment_upper_part& v, const join_format& fmt);
         template <>
-        std::string join(const comment_lower_part& v, const join_format& fmt);
+        HWSHQTB__INLINE std::string join(const comment_lower_part& v, const join_format& fmt);
         template <>
-        std::string join(const value& v, const join_format& fmt);
+        HWSHQTB__INLINE std::string join(const value& v, const join_format& fmt);
         template <>
-        std::string join(const key& v, const join_format& fmt);
+        HWSHQTB__INLINE std::string join(const key& v, const join_format& fmt);
         template <>
-        std::string join(const array& v, const join_format& fmt);
+        HWSHQTB__INLINE std::string join(const array& v, const join_format& fmt);
         template <>
-        std::string join(const key_value_pair& v, const join_format& fmt);
+        HWSHQTB__INLINE std::string join(const key_value_pair& v, const join_format& fmt);
         template <>
-        std::string join(const key_section_pair& v, const join_format& fmt);
+        HWSHQTB__INLINE std::string join(const key_section_pair& v, const join_format& fmt);
         template <>
-        std::string join(const table& v, const join_format& fmt);
+        HWSHQTB__INLINE std::string join(const table& v, const join_format& fmt);
 
-        bool is_space(char c) {
+        HWSHQTB__INLINE bool is_space(char c) {
             return c == 0x09 || c == 0x20;
         }
 
-        bool is_blank(char c) {
+        HWSHQTB__INLINE bool is_blank(char c) {
             return c == 0x09 || c == 0x20 || c == 0x0A || c == 0x0D;
         }
 
-        std::int8_t is_xdigit(char c) {
+        HWSHQTB__INLINE std::int8_t is_xdigit(char c) {
             if (c >= 0x30 && c <= 0x39) return c - 0x30;
             if (c >= 0x41 && c <= 0x46) return c - 0x31;
             if (c >= 0x61 && c <= 0x66) return c - 0x51;
             return -1;
         }
 
-        void remove_space(std::string_view& sv) {
+        HWSHQTB__INLINE void remove_space(std::string_view& sv) {
             while (!sv.empty() && is_space(sv.front()))
                 sv.remove_prefix(1);
         }
 
-        void remove_space_back(std::string& s) {
+        HWSHQTB__INLINE void remove_space_back(std::string& s) {
             while (!s.empty() && is_space(s.back()))
                 s.pop_back();
         }
 
-        void remove_blank(std::string_view& sv) {
+        HWSHQTB__INLINE void remove_blank(std::string_view& sv) {
             while (!sv.empty() && is_blank(sv.front()))
                 sv.remove_prefix(1);
         }
@@ -751,7 +774,7 @@ namespace hwshqtb {
     namespace ini {
         namespace impl {
             template <typename T>
-            parse_status parse_fixed_size_integer(std::string_view sv, T& v, std::uint8_t size) {
+            HWSHQTB__INLINE parse_status parse_fixed_size_integer(std::string_view sv, T& v, std::uint8_t size) {
                 v = 0;
                 while (size--) {
                     if (sv.empty()) return {sv, false};
@@ -766,7 +789,7 @@ namespace hwshqtb {
                 return {sv, true};
             }
 
-            std::string ucs2_to_utf8(std::uint64_t codepoint) {
+            HWSHQTB__INLINE std::string ucs2_to_utf8(std::uint64_t codepoint) {
                 std::string result;
                 if (codepoint <= 0x7F)
                     result += static_cast<char>(codepoint);
@@ -782,7 +805,7 @@ namespace hwshqtb {
                 return result;
             }
 
-            std::string ucs4_to_utf8(std::uint64_t codepoint) {
+            HWSHQTB__INLINE std::string ucs4_to_utf8(std::uint64_t codepoint) {
                 std::string result;
                 if (codepoint <= 0x7F)
                     result += static_cast<char>(codepoint);
@@ -1040,8 +1063,8 @@ namespace hwshqtb {
 
 
 /*** Start of inlined file: value.hpp ***/
-#ifndef HWSHQTB__TINI__VALUE_HPP
-#define HWSHQTB__TINI__VALUE_HPP
+#ifndef HWSHQTB__INI__VALUE_HPP
+#define HWSHQTB__INI__VALUE_HPP
 
 #include <variant>
 #include <optional>
@@ -1049,40 +1072,64 @@ namespace hwshqtb {
 namespace hwshqtb {
     namespace ini {
         class value {
-            using base_type = std::variant<std::monostate, string, integer, floating, boolean, array>;
+            using base_type = std::variant<string, integer, floating, boolean, array>;
 
         public:
             value():
-                _v(std::monostate{}) {}
-
-            template <typename T, std::enable_if_t<!std::is_same_v<T, std::monostate>, int> = 0>
+                _v(nullptr) {}
+            value(const value& v):
+                _v(v._v == nullptr ? nullptr : new base_type(*v._v)) {}
+            value(value&& v):
+                _v(std::exchange(v._v, nullptr)) {}
+            template <typename T>
             value(T&& v):
-                _v(std::forward<T>(v)) {}
+                _v(new base_type(std::forward<T>(v))) {}
 
-            template <typename T, std::enable_if_t<!std::is_same_v<T, std::monostate>, int> = 0>
+            ~value() {
+                delete _v;
+            }
+
+            value& operator=(const value& v) {
+                if (v._v == nullptr)
+                    clear();
+                else if (_v == nullptr)
+                    _v = new base_type(*v._v);
+                else
+                    *_v = *v._v;
+                return *this;
+            }
+            value& operator=(value&& v) {
+                delete _v;
+                _v = std::exchange(v._v, nullptr);
+                return *this;
+            }
+            template <typename T>
             value& operator=(T&& v) {
-                _v = std::forward<T>(v);
+                if (_v == nullptr)
+                    _v = new base_type(std::forward<T>(v));
+                else
+                    *_v = std::forward<T>(v);
                 return *this;
             }
 
-            template <typename T, std::enable_if_t<!std::is_same_v<T, std::monostate>, int> = 0>
+            template <typename T>
             auto& ref() {
-                return std::get<T>(_v);
+                return std::get<T>(*_v);
             }
 
-            template <typename T, std::enable_if_t<!std::is_same_v<T, std::monostate>, int> = 0>
+            template <typename T>
             const auto& ref()const {
-                return std::get<T>(_v);
+                return std::get<T>(*_v);
             }
 
-            template <typename T, std::enable_if_t<!std::is_same_v<T, std::monostate>, int> = 0>
+            template <typename T>
             auto get()const {
                 return std::visit([](auto&& v) {
                     using R = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<R, std::monostate>)
                         return std::optional<T>{std::nullopt};
                     else if constexpr (std::is_same_v<T, string>)
-                        return std::make_optional(join((std::string_view)v, global_format));
+                        return std::make_optional(join(v, global_format));
                     else if constexpr (std::is_same_v<T, array>) {
                         if constexpr (std::is_same_v<R, array>)
                             return std::make_optional(v);
@@ -1103,35 +1150,71 @@ namespace hwshqtb {
                             return std::make_optional(static_cast<T>(v));
                         }
                     }
-                }, _v);
+                }, *_v);
             }
 
-            template <typename T, std::enable_if_t<!std::is_same_v<T, std::monostate>, int> = 0>
+            template <typename T>
             auto value_or(T&& v) {
                 return get<std::decay_t<T>>().value_or(v);
             }
 
             template <class F>
             auto visit(F&& f)const {
-                return std::visit(std::forward<F>(f), _v);
+                return std::visit(std::forward<F>(f), *_v);
             }
 
-            template <typename T, std::enable_if_t<!std::is_same_v<T, std::monostate>, int> = 0>
+            template <typename T>
             bool is_type()const {
-                return std::holds_alternative<T>(_v);
+                return std::holds_alternative<T>(*_v);
             }
 
-            template <typename T, std::enable_if_t<!std::is_same_v<T, std::monostate>, int> = 0>
+#define JUDGE_TYPE(T) \
+bool is_##T()const { \
+    return is_type<T>(); \
+}
+
+            JUDGE_TYPE(string)
+            JUDGE_TYPE(integer)
+            JUDGE_TYPE(floating)
+            JUDGE_TYPE(boolean)
+            JUDGE_TYPE(array)
+#undef JUDGE_TYPE
+
+#define TYPE(T) \
+T& as_##T() { \
+    return ref<T>(); \
+}\
+const T& as_##T()const {\
+    return ref<T>(); \
+}
+
+            TYPE(string)
+            TYPE(integer)
+            TYPE(floating)
+            TYPE(boolean)
+            TYPE(array)
+#undef TYPE
+
+            template <typename T>
             void set(T&& v) {
-                _v = std::forward<T>(v);
+                *_v = std::forward<T>(v);
+            }
+
+            template <typename Iter>
+            void set(Iter l, Iter r) {
+                set(array{});
+                auto& arr = as_array();
+                while (l != r)
+                    arr.emplace_back(*l++);
             }
 
             void clear() {
-                _v = std::monostate{};
+                delete _v;
+                _v = nullptr;
             }
 
         private:
-            base_type _v;
+            base_type* _v;
 
         };
 
@@ -1152,6 +1235,7 @@ do { \
             PARSE(boolean);
             PARSE(integer);
             PARSE(floating);
+#undef PARSE
             return {sv, false};
         }
 
@@ -1181,8 +1265,8 @@ namespace hwshqtb {
             sv.remove_prefix(1);
             remove_space(sv);
             while (sv.size()) {
-                value* r = new value;
-                if (const auto& [nsv, succeed] = parse(sv, *r); sv = nsv, !succeed)
+                value r;
+                if (const auto& [nsv, succeed] = parse(sv, r); sv = nsv, !succeed)
                     return {sv, false};
                 v.push_back(r);
                 remove_space(sv);
@@ -1203,7 +1287,7 @@ namespace hwshqtb {
         std::string join(const array& v, const join_format& fmt) {
             std::string result = "[ ";
             for (const auto& r : v)
-                result += join(*r, fmt) + ", ";
+                result += join(r, fmt) + ", ";
             if (v.size()) {
                 result.pop_back();
                 result.pop_back();
@@ -1223,41 +1307,61 @@ namespace hwshqtb {
 #ifndef HWSHQTB__INI__TABLE_HPP
 #define HWSHQTB__INI__TABLE_HPP
 
+
+/*** Start of inlined file: key.hpp ***/
+#ifndef HWSHQTB__INI__KEY_HPP
+#define HWSHQTB__INI__KEY_HPP
+
 namespace hwshqtb {
     namespace ini {
+        HWSHQTB__INLINE key::key():
+            name(""), is_quoted(false) {}
+
+        HWSHQTB__INLINE key::key(const std::string& c) {
+            parse((std::string_view)c, *this);
+        }
+
         template <>
         parse_status parse(std::string_view sv, key& v) {
-            v.first = "";
-            v.second = false;
+            v = key{};
             if (sv.empty()) return {sv, false};
             if (sv.substr(0, 1) == "\"" || sv.substr(0, 1) == "\'") {
-                const auto& r = parse(sv, v.first);
+                const auto& r = parse(sv, v.name);
                 if (r.succeed)
-                    v.second = true;
+                    v.is_quoted = true;
                 return r;
             }
             std::size_t end = sv.find_first_not_of("1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-");
             if (end == 0)
                 return {sv, false};
-            v.first.assign(sv.data(), end);
-            sv.remove_prefix(end);
+            v.name.assign(sv.substr(0, end));
+            if (end == std::string_view::npos)
+                sv.remove_prefix(sv.size());
+            else sv.remove_prefix(end);
             return {sv, true};
         }
 
         template <>
         std::string join(const key& v, const join_format& fmt) {
-            if (v.second)
-                return join(v.first, fmt);
-            return v.first;
+            if (v.is_quoted)
+                return join(v.name, fmt);
+            return v.name;
         }
+    }
+}
 
+#endif
+/*** End of inlined file: key.hpp ***/
+
+#include <iostream>
+
+namespace hwshqtb {
+    namespace ini {
         template <>
         parse_status parse(std::string_view sv, key_value_pair& v) {
             auto& [k, r] = v;
             auto& [rv, rc] = r;
-            if (rv != nullptr)
-                delete rv;
-            rv = nullptr;
+            rv.clear();
             if (const auto& [nsv, succeed] = parse(sv, rc.upper); sv = nsv, !succeed)
                 return {sv, false};
             remove_space(sv);
@@ -1270,9 +1374,7 @@ namespace hwshqtb {
                 return {sv, false};
             sv.remove_prefix(1);
             remove_space(sv);
-            if (rv == nullptr)
-                rv = new value;
-            if (const auto& [nsv, succeed] = parse(sv, *rv); sv = nsv, !succeed)
+            if (const auto& [nsv, succeed] = parse(sv, rv); sv = nsv, !succeed)
                 return {sv, succeed};
             remove_space(sv);
             if (const auto& [nsv, succeed] = parse(sv, rc.lower); sv = nsv, !succeed)
@@ -1284,7 +1386,7 @@ namespace hwshqtb {
         std::string join(const key_value_pair& v, const join_format& fmt) {
             std::string lower = join(v.second.second.lower, fmt);
             return join(v.second.second.upper, fmt) +
-                join(v.first, fmt) + (fmt.space_around_eq ? " = " : "=") + join(*v.second.first, fmt)
+                join(v.first, fmt) + (fmt.space_around_eq ? " = " : "=") + join(v.second.first, fmt)
                 + (lower.substr(0, 2) == "#!" ? "\n" : "") + lower;
         }
 
@@ -1314,10 +1416,10 @@ namespace hwshqtb {
                     break;
                 key_value_pair p;
                 if (const auto& [nsv, succeed] = parse(sv, p); succeed) {
-                    if (p.first.first == "" && !p.first.second)
+                    if (p.first.name == "" && !p.first.is_quoted)
                         break;
                     sv = nsv;
-                    map.insert(std::move(p));
+                    map.insert(std::exchange(p, key_value_pair{}));
                     remove_blank(sv);
                 }
                 else return {sv, false};
@@ -1350,7 +1452,7 @@ namespace hwshqtb {
                     c.upper = ks.second.c.upper;
                     return {sv, true};
                 }
-                sections.insert(std::move(ks));
+                sections.insert(std::exchange(ks, key_section_pair{}));
             }
         }
 
@@ -1382,27 +1484,27 @@ namespace hwshqtb {
     namespace ini {
         using parse_result = std::optional<table>;
 
-        parse_result parse(std::string_view sv) {
+        HWSHQTB__INLINE parse_result parse(std::string_view sv) {
             table t;
             if (const auto& [_, succeed] = parse(sv, t); succeed)
-                return std::make_optional(t);
+                return std::make_optional(std::move(t));
             return std::nullopt;
         }
 
-        parse_result parse(std::ifstream& file) {
+        HWSHQTB__INLINE parse_result parse(std::ifstream& file) {
             std::istreambuf_iterator<char> begin(file), end;
             std::string str(begin, end);
             return parse((std::string_view)str);
         }
 
-        parse_result parse(const std::string& path) {
+        HWSHQTB__INLINE parse_result parse(const std::string& path) {
             std::ifstream file(path);
             if (!file.is_open())
                 return std::nullopt;
             return parse(file);
         }
 
-        std::ostream& operator<<(std::ostream& os, const table& v) {
+        HWSHQTB__INLINE std::ostream& operator<<(std::ostream& os, const table& v) {
             return os << join(v);
         }
     }

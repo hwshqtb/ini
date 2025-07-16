@@ -2,5 +2,6 @@
 #include <iostream>
 
 int main() {
-    std::cout << hwshqtb::ini::parse(std::string("./aimed.ini")).value();
+    auto table = hwshqtb::ini::parse(std::string("./aimed.ini")).value();
+    std::cout << hwshqtb::ini::join(table);
 }

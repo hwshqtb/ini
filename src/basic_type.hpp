@@ -8,7 +8,7 @@ namespace hwshqtb {
     namespace ini {
         namespace impl {
             template <typename T>
-            parse_status parse_fixed_size_integer(std::string_view sv, T& v, std::uint8_t size) {
+            HWSHQTB__INLINE parse_status parse_fixed_size_integer(std::string_view sv, T& v, std::uint8_t size) {
                 v = 0;
                 while (size--) {
                     if (sv.empty()) return {sv, false};
@@ -23,7 +23,7 @@ namespace hwshqtb {
                 return {sv, true};
             }
 
-            std::string ucs2_to_utf8(std::uint64_t codepoint) {
+            HWSHQTB__INLINE std::string ucs2_to_utf8(std::uint64_t codepoint) {
                 std::string result;
                 if (codepoint <= 0x7F)
                     result += static_cast<char>(codepoint);
@@ -39,7 +39,7 @@ namespace hwshqtb {
                 return result;
             }
 
-            std::string ucs4_to_utf8(std::uint64_t codepoint) {
+            HWSHQTB__INLINE std::string ucs4_to_utf8(std::uint64_t codepoint) {
                 std::string result;
                 if (codepoint <= 0x7F)
                     result += static_cast<char>(codepoint);

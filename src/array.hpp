@@ -13,8 +13,8 @@ namespace hwshqtb {
             sv.remove_prefix(1);
             remove_space(sv);
             while (sv.size()) {
-                value* r = new value;
-                if (const auto& [nsv, succeed] = parse(sv, *r); sv = nsv, !succeed)
+                value r;
+                if (const auto& [nsv, succeed] = parse(sv, r); sv = nsv, !succeed)
                     return {sv, false};
                 v.push_back(r);
                 remove_space(sv);
@@ -35,7 +35,7 @@ namespace hwshqtb {
         std::string join(const array& v, const join_format& fmt) {
             std::string result = "[ ";
             for (const auto& r : v)
-                result += join(*r, fmt) + ", ";
+                result += join(r, fmt) + ", ";
             if (v.size()) {
                 result.pop_back();
                 result.pop_back();

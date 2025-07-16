@@ -3,42 +3,16 @@
 
 #include "global.hpp"
 #include "value.hpp"
+#include "key.hpp"
+#include <iostream>
 
 namespace hwshqtb {
     namespace ini {
         template <>
-        parse_status parse(std::string_view sv, key& v) {
-            v.first = "";
-            v.second = false;
-            if (sv.empty()) return {sv, false};
-            if (sv.substr(0, 1) == "\"" || sv.substr(0, 1) == "\'") {
-                const auto& r = parse(sv, v.first);
-                if (r.succeed)
-                    v.second = true;
-                return r;
-            }
-            std::size_t end = sv.find_first_not_of("1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-");
-            if (end == 0)
-                return {sv, false};
-            v.first.assign(sv.data(), end);
-            sv.remove_prefix(end);
-            return {sv, true};
-        }
-
-        template <>
-        std::string join(const key& v, const join_format& fmt) {
-            if (v.second)
-                return join(v.first, fmt);
-            return v.first;
-        }
-
-        template <>
         parse_status parse(std::string_view sv, key_value_pair& v) {
             auto& [k, r] = v;
             auto& [rv, rc] = r;
-            if (rv != nullptr)
-                delete rv;
-            rv = nullptr;
+            rv.clear();
             if (const auto& [nsv, succeed] = parse(sv, rc.upper); sv = nsv, !succeed)
                 return {sv, false};
             remove_space(sv);
@@ -51,9 +25,7 @@ namespace hwshqtb {
                 return {sv, false};
             sv.remove_prefix(1);
             remove_space(sv);
-            if (rv == nullptr)
-                rv = new value;
-            if (const auto& [nsv, succeed] = parse(sv, *rv); sv = nsv, !succeed)
+            if (const auto& [nsv, succeed] = parse(sv, rv); sv = nsv, !succeed)
                 return {sv, succeed};
             remove_space(sv);
             if (const auto& [nsv, succeed] = parse(sv, rc.lower); sv = nsv, !succeed)
@@ -65,7 +37,7 @@ namespace hwshqtb {
         std::string join(const key_value_pair& v, const join_format& fmt) {
             std::string lower = join(v.second.second.lower, fmt);
             return join(v.second.second.upper, fmt) +
-                join(v.first, fmt) + (fmt.space_around_eq ? " = " : "=") + join(*v.second.first, fmt)
+                join(v.first, fmt) + (fmt.space_around_eq ? " = " : "=") + join(v.second.first, fmt)
                 + (lower.substr(0, 2) == "#!" ? "\n" : "") + lower;
         }
 
@@ -95,10 +67,10 @@ namespace hwshqtb {
                     break;
                 key_value_pair p;
                 if (const auto& [nsv, succeed] = parse(sv, p); succeed) {
-                    if (p.first.first == "" && !p.first.second)
+                    if (p.first.name == "" && !p.first.is_quoted)
                         break;
                     sv = nsv;
-                    map.insert(std::move(p));
+                    map.insert(std::exchange(p, key_value_pair{}));
                     remove_blank(sv);
                 }
                 else return {sv, false};
@@ -131,7 +103,7 @@ namespace hwshqtb {
                     c.upper = ks.second.c.upper;
                     return {sv, true};
                 }
-                sections.insert(std::move(ks));
+                sections.insert(std::exchange(ks, key_section_pair{}));
             }
         }
 
