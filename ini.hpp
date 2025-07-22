@@ -631,8 +631,10 @@ namespace hwshqtb {
         };
 
         struct join_format {
-            char quote = '\'';
+            char quote = '\"';
             bool space_around_eq = true;
+            bool array_element_newline = true;
+            mutable bool kv_inline = false;
 
             std::function<std::string(integer)> integer_formatter = [](integer v) -> std::string {
                 std::string result(100, '\0');
@@ -842,7 +844,7 @@ namespace hwshqtb {
                 while (sv.size()) {
                     char c = sv.front();
                     sv.remove_prefix(1);
-                    if (c == '\\') {
+                    if (c == '\\' && quote == '\"') {
                         if (sv.empty()) return {sv.data(), false};
                         c = sv.front();
                         sv.remove_prefix(1);
@@ -1126,15 +1128,12 @@ namespace hwshqtb {
             auto get()const {
                 return std::visit([](auto&& v) {
                     using R = std::decay_t<decltype(v)>;
-                    if constexpr (std::is_same_v<R, std::monostate>)
-                        return std::optional<T>{std::nullopt};
+                    if constexpr (std::is_same_v<T, R>)
+                        return v;
                     else if constexpr (std::is_same_v<T, string>)
                         return std::make_optional(join(v, global_format));
                     else if constexpr (std::is_same_v<T, array>) {
-                        if constexpr (std::is_same_v<R, array>)
-                            return std::make_optional(v);
-                        else
-                            return std::optional<T>{std::nullopt};
+                        return std::optional<T>{std::nullopt};
                     }
                     else {
                         if constexpr (std::is_same_v<R, array>)
@@ -1154,7 +1153,7 @@ namespace hwshqtb {
             }
 
             template <typename T>
-            auto value_or(T&& v) {
+            auto value_or(T&& v)const {
                 return get<std::decay_t<T>>().value_or(v);
             }
 
@@ -1196,11 +1195,35 @@ const T& as_##T()const {\
 #undef TYPE
 
             template <typename T>
-            void set(T&& v) {
+            void set(T&& value) {
                 if (_v == nullptr)
-                    _v = new base_type(std::forward<T>(v));
-                else
-                    *_v = std::forward<T>(v);
+                    _v = new base_type(std::forward<T>(value));
+                else {
+                    using RT = std::decay_t<T>;
+                    bool check = std::visit([&](auto&& v) -> bool {
+                        using R = std::decay_t<decltype(v)>;
+                        if constexpr (std::is_same_v<RT, string>) {
+                            return parse(value, v).succeed;
+                        }
+                        else if constexpr (std::is_same_v<RT, array>) {
+                            return false;
+                        }
+                        else {
+                            if constexpr (std::is_same_v<R, array>)
+                                return false;
+                            else if constexpr (std::is_same_v<R, string>) {
+                                v = join(value);
+                                return true;
+                            }
+                            else {
+                                v = static_cast<RT>(value);
+                                return true;
+                            }
+                        }
+                    }, *_v);
+                    if (!check)
+                        *_v = std::forward<T>(value);
+                }
             }
 
             template <typename Iter>
@@ -1266,16 +1289,20 @@ namespace hwshqtb {
             v.clear();
             if (sv.substr(0, 1) != "[") return {sv, false};
             sv.remove_prefix(1);
-            remove_space(sv);
+            remove_blank(sv);
             while (sv.size()) {
+                if (sv.substr(0, 1) == "]") {
+                    sv.remove_prefix(1);
+                    return {sv, true};
+                }
                 value r;
                 if (const auto& [nsv, succeed] = parse(sv, r); sv = nsv, !succeed)
                     return {sv, false};
                 v.push_back(r);
-                remove_space(sv);
+                remove_blank(sv);
                 if (sv.substr(0, 1) == ",") {
                     sv.remove_prefix(1);
-                    remove_space(sv);
+                    remove_blank(sv);
                 }
                 else if (sv.substr(0, 1) == "]") {
                     sv.remove_prefix(1);
@@ -1289,8 +1316,12 @@ namespace hwshqtb {
         template <>
         std::string join(const array& v, const join_format& fmt) {
             std::string result = "[ ";
-            for (const auto& r : v)
-                result += join(r, fmt) + ", ";
+            for (const auto& r : v) {
+                bool old = std::exchange(fmt.kv_inline, true);
+                result += join(r, fmt) + ",";
+                fmt.kv_inline = old;
+                result += (fmt.array_element_newline && !old) ? "\n" : " ";
+            }
             if (v.size()) {
                 result.pop_back();
                 result.pop_back();

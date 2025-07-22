@@ -90,8 +90,10 @@ namespace hwshqtb {
         };
 
         struct join_format {
-            char quote = '\'';
+            char quote = '\"';
             bool space_around_eq = true;
+            bool array_element_newline = true;
+            mutable bool kv_inline = false;
 
             std::function<std::string(integer)> integer_formatter = [](integer v) -> std::string {
                 std::string result(100, '\0');

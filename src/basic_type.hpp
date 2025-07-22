@@ -76,7 +76,7 @@ namespace hwshqtb {
                 while (sv.size()) {
                     char c = sv.front();
                     sv.remove_prefix(1);
-                    if (c == '\\') {
+                    if (c == '\\' && quote == '\"') {
                         if (sv.empty()) return {sv.data(), false};
                         c = sv.front();
                         sv.remove_prefix(1);

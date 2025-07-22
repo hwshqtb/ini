@@ -62,15 +62,12 @@ namespace hwshqtb {
             auto get()const {
                 return std::visit([](auto&& v) {
                     using R = std::decay_t<decltype(v)>;
-                    if constexpr (std::is_same_v<R, std::monostate>)
-                        return std::optional<T>{std::nullopt};
+                    if constexpr (std::is_same_v<T, R>)
+                        return v;
                     else if constexpr (std::is_same_v<T, string>)
                         return std::make_optional(join(v, global_format));
                     else if constexpr (std::is_same_v<T, array>) {
-                        if constexpr (std::is_same_v<R, array>)
-                            return std::make_optional(v);
-                        else
-                            return std::optional<T>{std::nullopt};
+                        return std::optional<T>{std::nullopt};
                     }
                     else {
                         if constexpr (std::is_same_v<R, array>)
@@ -90,7 +87,7 @@ namespace hwshqtb {
             }
 
             template <typename T>
-            auto value_or(T&& v) {
+            auto value_or(T&& v)const {
                 return get<std::decay_t<T>>().value_or(v);
             }
 
@@ -132,11 +129,35 @@ const T& as_##T()const {\
 #undef TYPE
 
             template <typename T>
-            void set(T&& v) {
+            void set(T&& value) {
                 if (_v == nullptr)
-                    _v = new base_type(std::forward<T>(v));
-                else
-                    *_v = std::forward<T>(v);
+                    _v = new base_type(std::forward<T>(value));
+                else {
+                    using RT = std::decay_t<T>;
+                    bool check = std::visit([&](auto&& v) -> bool {
+                        using R = std::decay_t<decltype(v)>;
+                        if constexpr (std::is_same_v<RT, string>) {
+                            return parse(value, v).succeed;
+                        }
+                        else if constexpr (std::is_same_v<RT, array>) {
+                            return false;
+                        }
+                        else {
+                            if constexpr (std::is_same_v<R, array>)
+                                return false;
+                            else if constexpr (std::is_same_v<R, string>) {
+                                v = join(value);
+                                return true;
+                            }
+                            else {
+                                v = static_cast<RT>(value);
+                                return true;
+                            }
+                        }
+                    }, *_v);
+                    if (!check)
+                        *_v = std::forward<T>(value);
+                }
             }
 
             template <typename Iter>
