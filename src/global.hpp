@@ -127,13 +127,13 @@ namespace hwshqtb {
 
         template <typename T>
         HWSHQTB__INLINE parse_status parse(std::string_view sv, T& v) {
-            static_assert(true, "T must be a valid ini type");
+            static_assert(false, "T must be a valid ini type");
             return {sv, false};
         }
 
         template <typename T>
         HWSHQTB__INLINE std::string join(const T& v, const join_format& fmt = global_format) {
-            static_assert(true, "T must be a valid ini type");
+            static_assert(false, "T must be a valid ini type");
             return "";
         }
 

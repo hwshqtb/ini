@@ -63,7 +63,7 @@ namespace hwshqtb {
                 return std::visit([](auto&& v) {
                     using R = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, R>)
-                        return v;
+                        return std::make_optional(v);
                     else if constexpr (std::is_same_v<T, string>)
                         return std::make_optional(join(v, global_format));
                     else if constexpr (std::is_same_v<T, array>) {

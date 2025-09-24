@@ -35,7 +35,10 @@ namespace hwshqtb {
             using container_type = Container;
 
             ordered_map() = default;
-            ordered_map(const ordered_map& other): _container(other._container), _map(other._map) {}
+            ordered_map(const ordered_map& other): _container(other._container), _map(other._map) {
+                for (auto iter = _container.begin(); iter != _container.end(); ++iter)
+                    _map[iter->first] = iter;
+            }
             ordered_map(ordered_map&& other) noexcept: _container(std::move(other._container)), _map(std::move(other._map)) {}
             explicit ordered_map(const container_type& container): _container(container) {
                 for (auto it = _container.begin(); it != _container.end(); ++it) {
@@ -110,6 +113,8 @@ namespace hwshqtb {
                 if (this != &other) {
                     _container = other._container;
                     _map = other._map;
+                    for (auto iter = _container.begin(); iter != _container.end(); ++iter)
+                        _map[iter->first] = iter;
                 }
                 return *this;
             }

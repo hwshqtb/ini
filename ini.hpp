@@ -56,7 +56,10 @@ namespace hwshqtb {
             using container_type = Container;
 
             ordered_map() = default;
-            ordered_map(const ordered_map& other): _container(other._container), _map(other._map) {}
+            ordered_map(const ordered_map& other): _container(other._container), _map(other._map) {
+                for (auto iter = _container.begin(); iter != _container.end(); ++iter)
+                    _map[iter->first] = iter;
+            }
             ordered_map(ordered_map&& other) noexcept: _container(std::move(other._container)), _map(std::move(other._map)) {}
             explicit ordered_map(const container_type& container): _container(container) {
                 for (auto it = _container.begin(); it != _container.end(); ++it) {
@@ -131,6 +134,8 @@ namespace hwshqtb {
                 if (this != &other) {
                     _container = other._container;
                     _map = other._map;
+                    for (auto iter = _container.begin(); iter != _container.end(); ++iter)
+                        _map[iter->first] = iter;
                 }
                 return *this;
             }
@@ -668,13 +673,13 @@ namespace hwshqtb {
 
         template <typename T>
         HWSHQTB__INLINE parse_status parse(std::string_view sv, T& v) {
-            static_assert(true, "T must be a valid ini type");
+            static_assert(false, "T must be a valid ini type");
             return {sv, false};
         }
 
         template <typename T>
         HWSHQTB__INLINE std::string join(const T& v, const join_format& fmt = global_format) {
-            static_assert(true, "T must be a valid ini type");
+            static_assert(false, "T must be a valid ini type");
             return "";
         }
 
@@ -1129,7 +1134,7 @@ namespace hwshqtb {
                 return std::visit([](auto&& v) {
                     using R = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, R>)
-                        return v;
+                        return std::make_optional(v);
                     else if constexpr (std::is_same_v<T, string>)
                         return std::make_optional(join(v, global_format));
                     else if constexpr (std::is_same_v<T, array>) {
