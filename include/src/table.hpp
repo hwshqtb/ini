@@ -33,7 +33,6 @@ namespace hwshqtb {
             return {sv, true};
         }
 
-        template <>
         std::string join(const key_value_pair& v, const join_format& fmt) {
             std::string lower = join(v.second.second.lower, fmt);
             return join(v.second.second.upper, fmt) +
@@ -78,7 +77,6 @@ namespace hwshqtb {
             return {sv, true};
         }
 
-        template <>
         std::string join(const key_section_pair& v, const join_format& fmt) {
             std::string result = join(v.second.c.upper, fmt) +
                 '[' + join(v.first, fmt) + ']' + join(v.second.c.lower);
@@ -107,7 +105,6 @@ namespace hwshqtb {
             }
         }
 
-        template <>
         std::string join(const table& v, const join_format& fmt) {
             std::string result = join(v.c.lower, fmt);
             if (result == "\n")

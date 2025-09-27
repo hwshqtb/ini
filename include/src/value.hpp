@@ -39,7 +39,7 @@ namespace hwshqtb {
                 _v = std::exchange(v._v, nullptr);
                 return *this;
             }
-            template <typename T>
+            template <typename T, std::enable_if_t<!std::is_same_v<std::decay_t<T>, value>, int> = 0>
             value& operator=(T&& v) {
                 if (_v == nullptr)
                     _v = new base_type(std::forward<T>(v));
@@ -199,7 +199,6 @@ do { \
             return {sv, false};
         }
 
-        template <>
         std::string join(const value& v, const join_format& fmt) {
             return v.visit([&](auto&& r) {
                 return join(r, fmt);

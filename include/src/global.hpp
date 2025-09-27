@@ -16,6 +16,8 @@
 #include <unordered_map>
 #include <functional>
 #include <charconv>
+#include <utility>
+#include <limits>
 
 namespace hwshqtb {
     namespace ini {
@@ -127,13 +129,52 @@ namespace hwshqtb {
 
         template <typename T>
         HWSHQTB__INLINE parse_status parse(std::string_view sv, T& v) {
-            static_assert(!std::is_same_v<T, T>, "T must be a valid ini type");
+            if constexpr (std::is_constructible_v<T, integer>) {
+                integer r;
+                if (auto ps = parse(sv, r); ps.succeed) {
+                    if (std::numeric_limits<T>::lowest() <= r && r <= std::numeric_limits<T>::max()) {
+                        v = static_cast<T>(r);
+                        return {ps.nsv, true};
+                    }
+                }
+                else
+                    return {ps.nsv, false};
+            }
+            else if constexpr (std::is_constructible_v<T, floating>) {
+                floating r;
+                if (auto ps = parse(sv, r); ps.succeed) {
+                    if (std::numeric_limits<T>::lowest() <= r && r <= std::numeric_limits<T>::max()) {
+                        v = static_cast<T>(r);
+                        return {ps.nsv, true};
+                    }
+                }
+                else
+                    return {ps.nsv, false};
+            }
+            else if constexpr (std::is_constructible_v<T, boolean>) {
+                boolean r;
+                if (auto ps = parse(sv, r); ps.succeed) {
+                    v = static_cast<T>(r);
+                    return {ps.nsv, true};
+                }
+                else
+                    return {ps.nsv, false};
+            }
+            else
+                static_assert(!std::is_same_v<T, T>, "T must be a valid ini type");
             return {sv, false};
         }
 
         template <typename T>
         HWSHQTB__INLINE std::string join(const T& v, const join_format& fmt = global_format) {
-            static_assert(!std::is_same_v<T, T>, "T must be a valid ini type");
+            if constexpr (std::is_convertible_v<T, integer>)
+                return fmt.integer_formatter(static_cast<integer>(v));
+            else if constexpr (std::is_convertible_v<T, floating>)
+                return fmt.floating_formatter(static_cast<floating>(v));
+            else if constexpr (std::is_convertible_v<T, boolean>)
+                return v ? "true" : "false";
+            else
+                static_assert(!std::is_same_v<T, T>, "T must be a valid ini type");
             return "";
         }
 
@@ -162,30 +203,18 @@ namespace hwshqtb {
         template <>
         HWSHQTB__INLINE parse_status parse(std::string_view sv, table& v);
 
-        template <>
-        HWSHQTB__INLINE std::string join(const std::string& v, const join_format& fmt); // both key and string
-        template <>
-        HWSHQTB__INLINE std::string join(const integer& v, const join_format& fmt);
-        template <>
-        HWSHQTB__INLINE std::string join(const floating& v, const join_format& fmt);
-        template <>
-        HWSHQTB__INLINE std::string join(const boolean& v, const join_format& fmt);
-        template <>
-        HWSHQTB__INLINE std::string join(const comment_upper_part& v, const join_format& fmt);
-        template <>
-        HWSHQTB__INLINE std::string join(const comment_lower_part& v, const join_format& fmt);
-        template <>
-        HWSHQTB__INLINE std::string join(const value& v, const join_format& fmt);
-        template <>
-        HWSHQTB__INLINE std::string join(const key& v, const join_format& fmt);
-        template <>
-        HWSHQTB__INLINE std::string join(const array& v, const join_format& fmt);
-        template <>
-        HWSHQTB__INLINE std::string join(const key_value_pair& v, const join_format& fmt);
-        template <>
-        HWSHQTB__INLINE std::string join(const key_section_pair& v, const join_format& fmt);
-        template <>
-        HWSHQTB__INLINE std::string join(const table& v, const join_format& fmt);
+        HWSHQTB__INLINE std::string join(const std::string& v, const join_format& fmt = global_format); // both key and string
+        HWSHQTB__INLINE std::string join(const integer& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const floating& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const boolean& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const comment_upper_part& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const comment_lower_part& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const value& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const key& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const array& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const key_value_pair& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const key_section_pair& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const table& v, const join_format& fmt = global_format);
 
         HWSHQTB__INLINE bool is_space(char c) {
             return c == 0x09 || c == 0x20;

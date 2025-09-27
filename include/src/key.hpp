@@ -32,7 +32,6 @@ namespace hwshqtb {
             return {sv, true};
         }
 
-        template <>
         std::string join(const key& v, const join_format& fmt) {
             if (v.is_quoted)
                 return join(v.name, fmt);

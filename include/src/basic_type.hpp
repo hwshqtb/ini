@@ -119,7 +119,6 @@ namespace hwshqtb {
             return {sv.data(), false};
         }
 
-        template <>
         std::string join(const std::string& v, const join_format& fmt) {
             std::string result;
             result.reserve(v.size() + 2);
@@ -155,7 +154,6 @@ namespace hwshqtb {
             return {sv, false};
         }
 
-        template <>
         std::string join(const integer& v, const join_format& fmt) {
             return fmt.integer_formatter(v);
         }
@@ -171,7 +169,6 @@ namespace hwshqtb {
             return {sv, false};
         }
 
-        template <>
         std::string join(const floating& v, const join_format& fmt) {
             return fmt.floating_formatter(v);
         }
@@ -193,7 +190,6 @@ namespace hwshqtb {
             return {sv.data(), false};
         }
 
-        template <>
         std::string join(const boolean& v, const join_format& fmt) {
             return v ? "true" : "false";
         }

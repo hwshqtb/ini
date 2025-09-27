@@ -1,5 +1,8 @@
 # hwshqtb's ini parser
 
+[![Language](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)
+[![License](https://img.shields.io/badge/License-BSL--1.0-blue.svg)](https://opensource.org/licenses/BSL-1.0)
+
 a special ini parser that parse a ml compromise between original ini and toml
 
 ## highlights

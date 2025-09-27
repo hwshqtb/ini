@@ -29,7 +29,6 @@ namespace hwshqtb {
             return {sv, true};
         }
 
-        template <>
         std::string join(const comment_upper_part& v, const join_format& fmt) {
             std::string result;
             for (const auto& line : v.contents)
@@ -68,7 +67,6 @@ namespace hwshqtb {
             return {sv, true};
         }
 
-        template <>
         std::string join(const comment_lower_part& v, const join_format& fmt) {
             if (v.contents.empty())
                 return "\n";

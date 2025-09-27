@@ -35,7 +35,6 @@ namespace hwshqtb {
             return {sv, false};
         }
 
-        template <>
         std::string join(const array& v, const join_format& fmt) {
             std::string result = "[ ";
             for (const auto& r : v) {

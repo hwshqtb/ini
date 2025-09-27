@@ -16,17 +16,21 @@ namespace hwshqtb {
             return std::nullopt;
         }
 
-        HWSHQTB__INLINE parse_result parse(std::ifstream& file) {
+        HWSHQTB__INLINE parse_result parse(const std::string& s) {
+            return parse((std::string_view)s);
+        }
+
+        HWSHQTB__INLINE parse_result parse_file(std::ifstream& file) {
             std::istreambuf_iterator<char> begin(file), end;
             std::string str(begin, end);
             return parse((std::string_view)str);
         }
 
-        HWSHQTB__INLINE parse_result parse(const std::string& path) {
+        HWSHQTB__INLINE parse_result parse_file(const std::string& path) {
             std::ifstream file(path);
             if (!file.is_open())
                 return std::nullopt;
-            return parse(file);
+            return parse_file(file);
         }
 
         HWSHQTB__INLINE std::ostream& operator<<(std::ostream& os, const table& v) {
