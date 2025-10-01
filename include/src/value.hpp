@@ -7,19 +7,40 @@
 
 namespace hwshqtb {
     namespace ini {
+        namespace detail {
+            template <typename T, typename Variant>
+            struct value_helper;
+
+            template <typename T>
+            struct value_helper<T, std::variant<>> {
+                static constexpr std::size_t same_index = 0;
+                static constexpr bool constructible_is = false;
+                static constexpr std::size_t constructible_index = 0;
+                using constructible_type = void;
+            };
+
+            template <typename T, typename U, typename... Types>
+            struct value_helper<T, std::variant<U, Types...>> {
+                static constexpr std::size_t same_index = std::is_same_v<T, U> ? 0 : 1 + value_helper<T, std::variant<Types...>>::same_index;
+                static constexpr bool constructible_is = std::is_constructible_v<U, T>;
+                static constexpr std::size_t constructible_index = constructible_is ? 0 : 1 + value_helper<T, std::variant<Types...>>::constructible_index;
+                using constructible_type = std::conditional_t<constructible_is, U, typename value_helper<T, std::variant<Types...>>::constructible_type>;
+            };
+        }
+
         class value {
-            using base_type = std::variant<string, integer, floating, boolean, array>;
+            using base_type = std::variant<integer, floating, boolean, string, array>;
 
         public:
             value():
                 _v(nullptr) {}
             value(const value& v):
                 _v(v._v == nullptr ? nullptr : new base_type(*v._v)) {}
-            value(value&& v):
+            value(value&& v)noexcept:
                 _v(std::exchange(v._v, nullptr)) {}
-            template <typename T>
-            value(T&& v):
-                _v(new base_type(std::forward<T>(v))) {}
+            template <typename T, std::enable_if_t<(detail::value_helper<std::decay_t<T>, base_type>::constructible_index < 5), int> = 0>
+            value(T&& v) :
+                _v(new base_type(std::in_place_type_t<typename detail::value_helper<std::decay_t<T>, base_type>::constructible_type>{}, std::forward<T>(v))) {}
 
             ~value() {
                 delete _v;
@@ -34,7 +55,7 @@ namespace hwshqtb {
                     *_v = *v._v;
                 return *this;
             }
-            value& operator=(value&& v) {
+            value& operator=(value&& v)noexcept {
                 delete _v;
                 _v = std::exchange(v._v, nullptr);
                 return *this;
@@ -48,12 +69,12 @@ namespace hwshqtb {
                 return *this;
             }
 
-            template <typename T>
+            template <typename T, std::enable_if_t<(detail::value_helper<std::decay_t<T>, base_type>::same_index < 5), int> = 0>
             auto& ref() {
                 return std::get<T>(*_v);
             }
 
-            template <typename T>
+            template <typename T, std::enable_if_t<(detail::value_helper<std::decay_t<T>, base_type>::same_index < 5), int> = 0>
             const auto& ref()const {
                 return std::get<T>(*_v);
             }
@@ -107,10 +128,10 @@ bool is_##T()const { \
 }
 
             JUDGE_TYPE(string)
-            JUDGE_TYPE(integer)
-            JUDGE_TYPE(floating)
-            JUDGE_TYPE(boolean)
-            JUDGE_TYPE(array)
+                JUDGE_TYPE(integer)
+                JUDGE_TYPE(floating)
+                JUDGE_TYPE(boolean)
+                JUDGE_TYPE(array)
 #undef JUDGE_TYPE
 
 #define TYPE(T) \
@@ -121,17 +142,17 @@ const T& as_##T()const {\
     return ref<T>(); \
 }
 
-            TYPE(string)
-            TYPE(integer)
-            TYPE(floating)
-            TYPE(boolean)
-            TYPE(array)
+                TYPE(string)
+                TYPE(integer)
+                TYPE(floating)
+                TYPE(boolean)
+                TYPE(array)
 #undef TYPE
 
-            template <typename T>
+                template <typename T, std::enable_if_t<(detail::value_helper<std::decay_t<T>, base_type>::constructible_index < 5), int> = 0>
             void set(T&& value) {
                 if (_v == nullptr)
-                    _v = new base_type(std::forward<T>(value));
+                    _v = new base_type(std::in_place_type_t<typename detail::value_helper<std::decay_t<T>, base_type>::constructible_type>{}, std::forward<T>(value));
                 else {
                     using RT = std::decay_t<T>;
                     bool check = std::visit([&](auto&& v) -> bool {
@@ -156,7 +177,7 @@ const T& as_##T()const {\
                         }
                     }, *_v);
                     if (!check)
-                        *_v = std::forward<T>(value);
+                        _v->emplace<detail::value_helper<std::decay_t<T>, base_type>::constructible_index>(value);
                 }
             }
 
