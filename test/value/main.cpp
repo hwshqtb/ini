@@ -1,5 +1,6 @@
 #include "ini.hpp"
 #include <vector>
+#include <array>
 
 int main() {
     using namespace hwshqtb::ini;
