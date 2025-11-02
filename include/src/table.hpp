@@ -8,7 +8,6 @@
 
 namespace hwshqtb {
     namespace ini {
-        template <>
         parse_status parse(std::string_view sv, key_value_pair& v) {
             auto& [k, r] = v;
             auto& [rv, rc] = r;
@@ -40,7 +39,6 @@ namespace hwshqtb {
                 + (lower.substr(0, 2) == "#!" ? "\n" : "") + lower;
         }
 
-        template <>
         parse_status parse(std::string_view sv, key_section_pair& v) {
             auto& [k, r] = v;
             auto& [map, rc] = r;
@@ -86,7 +84,6 @@ namespace hwshqtb {
             return result;
         }
 
-        template <>
         parse_status parse(std::string_view sv, table& v) {
             auto& [sections, c] = v;
             sections.clear();

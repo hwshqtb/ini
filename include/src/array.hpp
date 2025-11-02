@@ -6,7 +6,6 @@
 
 namespace hwshqtb {
     namespace ini {
-        template <>
         parse_status parse(std::string_view sv, array& v) {
             v.clear();
             if (sv.substr(0, 1) != "[") return {sv, false};

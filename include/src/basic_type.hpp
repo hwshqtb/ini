@@ -66,7 +66,6 @@ namespace hwshqtb {
 
 namespace hwshqtb {
     namespace ini {
-        template <>
         parse_status parse(std::string_view sv, std::string& v) {
             v.clear();
             if (sv.empty()) return {sv, false};
@@ -141,7 +140,6 @@ namespace hwshqtb {
             return result;
         }
 
-        template <>
         parse_status parse(std::string_view sv, integer& v) {
             v = 0;
             if (sv.empty()) return {sv, false};
@@ -158,7 +156,6 @@ namespace hwshqtb {
             return fmt.integer_formatter(v);
         }
 
-        template <>
         parse_status parse(std::string_view sv, floating& v) {
             v = 0.0;
             if (sv.empty()) return {sv, false};
@@ -173,7 +170,6 @@ namespace hwshqtb {
             return fmt.floating_formatter(v);
         }
 
-        template <>
         parse_status parse(std::string_view sv, boolean& v) {
             v = false;
             if (sv.empty()) return {sv, false};

@@ -5,7 +5,6 @@
 
 namespace hwshqtb {
     namespace ini {
-        template <>
         parse_status parse(std::string_view sv, comment_upper_part& v) {
             v.contents.clear();
             if (sv.empty())
@@ -36,7 +35,6 @@ namespace hwshqtb {
             return result;
         }
 
-        template <>
         parse_status parse(std::string_view sv, comment_lower_part& v) {
             v.contents.clear();
             v.same_line = false;

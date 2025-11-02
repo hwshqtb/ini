@@ -26,6 +26,16 @@ namespace hwshqtb {
                 static constexpr std::size_t constructible_index = constructible_is ? 0 : 1 + value_helper<T, std::variant<Types...>>::constructible_index;
                 using constructible_type = std::conditional_t<constructible_is, U, typename value_helper<T, std::variant<Types...>>::constructible_type>;
             };
+
+            template <typename T, typename base_type>
+            struct array_helper: public std::integral_constant<bool, value_helper<std::decay_t<T>, base_type>::constructible_index < 5> {};
+
+            template <template <typename...> class V, typename T, typename... Ts, typename base_type>
+            struct array_helper<V<T, Ts...>, base_type>: public array_helper<T, base_type> {};
+
+            template <template <typename, auto...> class V, typename T, auto... Ns, typename base_type>
+            struct array_helper<V<T, Ns...>, base_type>: public array_helper<T, base_type> {};
+
         }
 
         class value {
@@ -128,10 +138,10 @@ bool is_##T()const { \
 }
 
             JUDGE_TYPE(string)
-                JUDGE_TYPE(integer)
-                JUDGE_TYPE(floating)
-                JUDGE_TYPE(boolean)
-                JUDGE_TYPE(array)
+            JUDGE_TYPE(integer)
+            JUDGE_TYPE(floating)
+            JUDGE_TYPE(boolean)
+            JUDGE_TYPE(array)
 #undef JUDGE_TYPE
 
 #define TYPE(T) \
@@ -142,23 +152,23 @@ const T& as_##T()const {\
     return ref<T>(); \
 }
 
-                TYPE(string)
-                TYPE(integer)
-                TYPE(floating)
-                TYPE(boolean)
-                TYPE(array)
+            TYPE(string)
+            TYPE(integer)
+            TYPE(floating)
+            TYPE(boolean)
+            TYPE(array)
 #undef TYPE
 
-                template <typename T, std::enable_if_t<(detail::value_helper<std::decay_t<T>, base_type>::constructible_index < 5), int> = 0>
-            void set(T&& value) {
+            template <typename T, std::enable_if_t<(detail::value_helper<std::decay_t<T>, base_type>::constructible_index < 5), int> = 0>
+            void set(T&& v) {
                 if (_v == nullptr)
-                    _v = new base_type(std::in_place_type_t<typename detail::value_helper<std::decay_t<T>, base_type>::constructible_type>{}, std::forward<T>(value));
+                    _v = new base_type(std::in_place_type_t<typename detail::value_helper<std::decay_t<T>, base_type>::constructible_type>{}, std::forward<T>(v));
                 else {
                     using RT = std::decay_t<T>;
-                    bool check = std::visit([&](auto&& v) -> bool {
-                        using R = std::decay_t<decltype(v)>;
+                    bool check = std::visit([&](auto&& v2) -> bool {
+                        using R = std::decay_t<decltype(v2)>;
                         if constexpr (std::is_same_v<RT, string>) {
-                            return parse(value, v).succeed;
+                            return parse(v, v2).succeed;
                         }
                         else if constexpr (std::is_same_v<RT, array>) {
                             return false;
@@ -167,17 +177,28 @@ const T& as_##T()const {\
                             if constexpr (std::is_same_v<R, array>)
                                 return false;
                             else if constexpr (std::is_same_v<R, string>) {
-                                v = join(value);
+                                v2 = join(v);
                                 return true;
                             }
                             else {
-                                v = static_cast<RT>(value);
+                                v2 = static_cast<RT>(v);
                                 return true;
                             }
                         }
                     }, *_v);
                     if (!check)
-                        _v->emplace<detail::value_helper<std::decay_t<T>, base_type>::constructible_index>(value);
+                        _v->emplace<detail::value_helper<std::decay_t<T>, base_type>::constructible_index>(v);
+                }
+            }
+
+            template <typename T, std::enable_if_t<detail::array_helper<std::decay_t<T>, base_type>::value && (detail::value_helper<std::decay_t<T>, base_type>::constructible_index >= 5), int> = 0>
+            void set(T&& v) {
+                set(array{});
+                auto& arr = as_array();
+                for (auto&& item : v) {
+                    value v2;
+                    v2.set(std::forward<decltype(item)>(item));
+                    arr.emplace_back(std::move(v2));
                 }
             }
 
@@ -199,7 +220,6 @@ const T& as_##T()const {\
 
         };
 
-        template <>
         parse_status parse(std::string_view sv, value& v) {
             v.clear();
 

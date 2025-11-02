@@ -178,29 +178,17 @@ namespace hwshqtb {
             return "";
         }
 
-        template <>
         HWSHQTB__INLINE parse_status parse(std::string_view sv, std::string& v); // both key and string
-        template <>
         HWSHQTB__INLINE parse_status parse(std::string_view sv, integer& v);
-        template <>
         HWSHQTB__INLINE parse_status parse(std::string_view sv, floating& v);
-        template <>
         HWSHQTB__INLINE parse_status parse(std::string_view sv, boolean& v);
-        template <>
         HWSHQTB__INLINE parse_status parse(std::string_view sv, comment_upper_part& v);
-        template <>
         HWSHQTB__INLINE parse_status parse(std::string_view sv, comment_lower_part& v);
-        template <>
         HWSHQTB__INLINE parse_status parse(std::string_view sv, value& v);
-        template <>
         HWSHQTB__INLINE parse_status parse(std::string_view sv, key& v);
-        template <>
         HWSHQTB__INLINE parse_status parse(std::string_view sv, array& v);
-        template <>
         HWSHQTB__INLINE parse_status parse(std::string_view sv, key_value_pair& v);
-        template <>
         HWSHQTB__INLINE parse_status parse(std::string_view sv, key_section_pair& v);
-        template <>
         HWSHQTB__INLINE parse_status parse(std::string_view sv, table& v);
 
         HWSHQTB__INLINE std::string join(const std::string& v, const join_format& fmt = global_format); // both key and string

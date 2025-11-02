@@ -12,7 +12,6 @@ namespace hwshqtb {
             parse((std::string_view)c, *this);
         }
         
-        template <>
         parse_status parse(std::string_view sv, key& v) {
             v = key{};
             if (sv.empty()) return {sv, false};
