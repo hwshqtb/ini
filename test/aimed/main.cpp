@@ -18,5 +18,10 @@ else = "else"
 
 # file comment part2)";
     auto table = hwshqtb::ini::parse(content).value();
-    std::cout << hwshqtb::ini::join(table);
+    std::cout << hwshqtb::ini::join(table) << std::endl;
+
+    hwshqtb::ini::join_format fmt;
+    fmt.array_element_newline = false;
+    std::cout << "---- With array_element_newline false ----" << std::endl;
+    std::cout << hwshqtb::ini::join(table, fmt);
 }

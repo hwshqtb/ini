@@ -127,9 +127,63 @@ namespace hwshqtb {
             bool succeed;
         };
 
+        namespace detail {
+            template <typename T, typename = void>
+            struct value_helper: public std::false_type {
+                static constexpr std::size_t same_index = 6;
+                static constexpr std::size_t constructible_index = 5;
+            };
+
+            template <typename T>
+            struct value_helper<T, std::enable_if_t<std::numeric_limits<std::decay_t<T>>::is_integer && !std::is_same_v<std::decay_t<T>, boolean>>>: public std::true_type {
+                static constexpr std::size_t same_index = std::is_same_v<std::decay_t<T>, integer> ? 0 : 5;
+                static constexpr std::size_t constructible_index = 0;
+            };
+
+            template <typename T>
+            struct value_helper<T, std::enable_if_t<std::numeric_limits<std::decay_t<T>>::is_specialized && !std::numeric_limits<std::decay_t<T>>::is_integer>>: public std::true_type {
+                static constexpr std::size_t same_index = std::is_same_v<std::decay_t<T>, floating> ? 1 : 6;
+                static constexpr std::size_t constructible_index = 1;
+            };
+
+            template <typename T>
+            struct value_helper<T, std::enable_if_t<std::is_same_v<std::decay_t<T>, boolean>>>: public std::true_type {
+                static constexpr std::size_t same_index = 2;
+                static constexpr std::size_t constructible_index = 2;
+            };
+
+            template <typename T>
+            struct value_helper<T, std::enable_if_t<std::is_same_v<std::decay_t<T>, string>>>: public std::true_type {
+                static constexpr std::size_t same_index = 3;
+                static constexpr std::size_t constructible_index = 3;
+            };
+
+            template <>
+            struct value_helper<array>: public std::true_type {
+                static constexpr std::size_t same_index = 4;
+                static constexpr std::size_t constructible_index = 4;
+            };
+
+            template <template <typename...> class C, typename T, typename... Ts>
+            struct value_helper<C<T, Ts...>, std::void_t<decltype(std::begin(std::declval<C<T, Ts...>>())), decltype(std::end(std::declval<C<T, Ts...>>())), std::enable_if_t<!std::is_same_v<std::decay_t<C<T, Ts...>>, string>, int>>>: public value_helper<T> {
+                static constexpr std::size_t same_index = 5;
+                static constexpr std::size_t constructible_index = 4;
+                static constexpr std::size_t inner_constructible_index = detail::value_helper<T>::constructible_index;
+            };
+
+            template <template <typename, auto...> class C, typename T, auto... Ts>
+            struct value_helper<C<T, Ts...>, std::void_t<decltype(std::begin(std::declval<C<T, Ts...>>())), decltype(std::end(std::declval<C<T, Ts...>>())), std::enable_if_t<!std::is_same_v<std::decay_t<C<T, Ts...>>, string>, int>>>: public value_helper<T> {
+                static constexpr std::size_t same_index = 5;
+                static constexpr std::size_t constructible_index = 4;
+                static constexpr std::size_t inner_constructible_index = detail::value_helper<T>::constructible_index;
+            };
+
+        }
+        
         template <typename T>
         HWSHQTB__INLINE parse_status parse(std::string_view sv, T& v) {
-            if constexpr (std::is_constructible_v<T, integer>) {
+            constexpr std::size_t constructible_index = detail::value_helper<T>::constructible_index;
+            if constexpr (constructible_index == 0) {
                 integer r;
                 if (auto ps = parse(sv, r); ps.succeed) {
                     if (std::numeric_limits<T>::lowest() <= r && r <= std::numeric_limits<T>::max()) {
@@ -140,7 +194,7 @@ namespace hwshqtb {
                 else
                     return {ps.nsv, false};
             }
-            else if constexpr (std::is_constructible_v<T, floating>) {
+            else if constexpr (constructible_index == 1) {
                 floating r;
                 if (auto ps = parse(sv, r); ps.succeed) {
                     if (std::numeric_limits<T>::lowest() <= r && r <= std::numeric_limits<T>::max()) {
@@ -151,7 +205,7 @@ namespace hwshqtb {
                 else
                     return {ps.nsv, false};
             }
-            else if constexpr (std::is_constructible_v<T, boolean>) {
+            else if constexpr (constructible_index == 2) {
                 boolean r;
                 if (auto ps = parse(sv, r); ps.succeed) {
                     v = static_cast<T>(r);
@@ -167,11 +221,12 @@ namespace hwshqtb {
 
         template <typename T>
         HWSHQTB__INLINE std::string join(const T& v, const join_format& fmt = global_format) {
-            if constexpr (std::is_convertible_v<T, integer>)
+            constexpr std::size_t constructible_index = detail::value_helper<T>::constructible_index;
+            if constexpr (constructible_index == 0)
                 return fmt.integer_formatter(static_cast<integer>(v));
-            else if constexpr (std::is_convertible_v<T, floating>)
+            else if constexpr (constructible_index == 1)
                 return fmt.floating_formatter(static_cast<floating>(v));
-            else if constexpr (std::is_convertible_v<T, boolean>)
+            else if constexpr (constructible_index == 2)
                 return v ? "true" : "false";
             else
                 static_assert(!std::is_same_v<T, T>, "T must be a valid ini type");
