@@ -13,9 +13,7 @@
 
 namespace hwshqtb {
     namespace container {
-        template <typename Key, typename T,
-            class Container = std::list<std::pair<const Key, T>>,
-            class Map = std::map<Key, typename Container::iterator>>
+        template <typename Key, typename T, class Container = std::list<std::pair<const Key, T>>, class Map = std::map<Key, typename Container::iterator>>
         class ordered_map {
         public:
             using key_type = Key;
@@ -35,73 +33,100 @@ namespace hwshqtb {
             using container_type = Container;
 
             ordered_map() = default;
-            ordered_map(const ordered_map& other): _container(other._container), _map(other._map) {
+
+            ordered_map(const ordered_map& other):
+                _container(other._container),
+                _map(other._map) {
                 for (auto iter = _container.begin(); iter != _container.end(); ++iter)
                     _map[iter->first] = iter;
             }
-            ordered_map(ordered_map&& other) noexcept: _container(std::move(other._container)), _map(std::move(other._map)) {}
-            explicit ordered_map(const container_type& container): _container(container) {
+
+            ordered_map(ordered_map&& other) noexcept:
+                _container(std::move(other._container)),
+                _map(std::move(other._map)) {}
+
+            explicit ordered_map(const container_type& container):
+                _container(container) {
                 for (auto it = _container.begin(); it != _container.end(); ++it) {
                     _map[it->first] = it;
                 }
             }
-            explicit ordered_map(container_type&& container) noexcept : _container(std::move(container)) {
+
+            explicit ordered_map(container_type&& container) noexcept:
+                _container(std::move(container)) {
                 for (auto it = _container.begin(); it != _container.end(); ++it) {
                     _map[it->first] = it;
                 }
             }
+
             template <typename InputIt>
-            ordered_map(InputIt first, InputIt last, const allocator_type& allocator = allocator_type())
-                : _container(allocator) {
+            ordered_map(InputIt first, InputIt last, const allocator_type& allocator = allocator_type()):
+                _container(allocator) {
                 for (auto it = first; it != last; ++it) {
                     insert(*it);
                 }
             }
-            ordered_map(std::initializer_list<value_type> ilist)
-                : _container(ilist) {
+
+            ordered_map(std::initializer_list<value_type> ilist):
+                _container(ilist) {
                 for (const auto& value : ilist) {
                     _map[value.first] = --_container.end();
                 }
             }
+
             template <class Alloc>
-            explicit ordered_map(const Alloc& allocator): _container(allocator), _map(allocator) {}
+            explicit ordered_map(const Alloc& allocator):
+                _container(allocator),
+                _map(allocator) {}
+
             template <class Alloc>
-            ordered_map(const ordered_map& other, const Alloc& allocator)
-                : _container(other._container, allocator), _map(other._map, allocator) {
+            ordered_map(const ordered_map& other, const Alloc& allocator):
+                _container(other._container, allocator),
+                _map(other._map, allocator) {
                 for (auto it = _container.begin(); it != _container.end(); ++it) {
                     _map[it->first] = it;
                 }
             }
+
             template <class Alloc>
-            ordered_map(ordered_map&& other, const Alloc& allocator) noexcept
-                : _container(std::move(other._container), allocator), _map(std::move(other._map), allocator) {
+            ordered_map(ordered_map&& other, const Alloc& allocator) noexcept:
+                _container(std::move(other._container), allocator),
+                _map(std::move(other._map), allocator) {
                 for (auto it = _container.begin(); it != _container.end(); ++it) {
                     _map[it->first] = it;
                 }
             }
+
             template <class Alloc>
-            ordered_map(const container_type& container, const Alloc& allocator): _container(container, allocator), _map(allocator) {
+            ordered_map(const container_type& container, const Alloc& allocator):
+                _container(container, allocator),
+                _map(allocator) {
                 for (auto it = _container.begin(); it != _container.end(); ++it) {
                     _map[it->first] = it;
                 }
             }
+
             template <class Alloc>
-            ordered_map(container_type&& container, const Alloc& allocator) noexcept
-                : _container(std::move(container), allocator), _map(allocator) {
+            ordered_map(container_type&& container, const Alloc& allocator) noexcept:
+                _container(std::move(container), allocator),
+                _map(allocator) {
                 for (auto it = _container.begin(); it != _container.end(); ++it) {
                     _map[it->first] = it;
                 }
             }
+
             template <typename InputIt, class Alloc>
-            ordered_map(InputIt first, InputIt last, const Alloc& allocator)
-                : _container(allocator) {
+            ordered_map(InputIt first, InputIt last, const Alloc& allocator):
+                _container(allocator) {
                 for (auto it = first; it != last; ++it) {
                     insert(*it);
                 }
             }
+
             template <class Alloc>
-            ordered_map(std::initializer_list<value_type> ilist, const Alloc& allocator)
-                : _container(ilist, allocator), _map(allocator) {
+            ordered_map(std::initializer_list<value_type> ilist, const Alloc& allocator):
+                _container(ilist, allocator),
+                _map(allocator) {
                 for (const auto& value : ilist) {
                     _map[value.first] = --_container.end();
                 }
@@ -118,6 +143,7 @@ namespace hwshqtb {
                 }
                 return *this;
             }
+
             ordered_map& operator=(ordered_map&& other) noexcept {
                 if (this != &other) {
                     _container = std::move(other._container);
@@ -125,6 +151,7 @@ namespace hwshqtb {
                 }
                 return *this;
             }
+
             ordered_map& operator=(std::initializer_list<value_type> ilist) {
                 clear();
                 insert(ilist);
@@ -145,7 +172,7 @@ namespace hwshqtb {
                 return it->second->second;
             }
 
-            const mapped_type& operator[](const key_type& key)const {
+            const mapped_type& operator[](const key_type& key) const {
                 auto it = _map.find(key);
                 return it->second->second;
             }
@@ -157,6 +184,7 @@ namespace hwshqtb {
                 }
                 return it->second->second;
             }
+
             const mapped_type& at(const key_type& key) const {
                 auto it = _map.find(key);
                 if (it == _map.end()) {
@@ -189,6 +217,7 @@ namespace hwshqtb {
                     _map[_container.back().first] = --_container.end();
                 }
             }
+
             void insert(value_type&& value) {
                 auto it = _map.find(value.first);
                 if (it == _map.end()) {
@@ -196,6 +225,7 @@ namespace hwshqtb {
                     _map[_container.back().first] = --_container.end();
                 }
             }
+
             template <typename P>
             typename std::enable_if<std::is_constructible<value_type, P>::value && std::is_same<typename std::decay<P>::type, value_type>::value>::type insert(P&& value) {
                 auto it = _map.find(value.first);
@@ -204,6 +234,7 @@ namespace hwshqtb {
                     _map[_container.back().first] = --_container.end();
                 }
             }
+
             iterator insert(const_iterator hint, const value_type& value) {
                 auto it = _map.find(value.first);
                 if (it == _map.end()) {
@@ -214,6 +245,7 @@ namespace hwshqtb {
                 }
                 return it->second;
             }
+
             iterator insert(const_iterator hint, value_type&& value) {
                 auto it = _map.find(value.first);
                 if (it == _map.end()) {
@@ -224,8 +256,9 @@ namespace hwshqtb {
                 }
                 return it->second;
             }
+
             template <typename P>
-            typename std::enable_if<std::is_constructible<value_type, P>::value&& std::is_same<typename std::decay<P>::type, value_type>::value, iterator>::type insert(const_iterator hint, P&& value) {
+            typename std::enable_if<std::is_constructible<value_type, P>::value && std::is_same<typename std::decay<P>::type, value_type>::value, iterator>::type insert(const_iterator hint, P&& value) {
                 auto it = _map.find(value.first);
                 if (it == _map.end()) {
                     _container.insert(hint, std::forward<P>(value));
@@ -235,12 +268,14 @@ namespace hwshqtb {
                 }
                 return it->second;
             }
+
             template <typename InputIt>
             void insert(InputIt first, InputIt last) {
                 for (auto it = first; it != last; ++it) {
                     insert(*it);
                 }
             }
+
             void insert(std::initializer_list<value_type> ilist) {
                 for (const auto& value : ilist) {
                     insert(value);
@@ -255,11 +290,13 @@ namespace hwshqtb {
                     auto new_it = --_container.end();
                     _map[key] = new_it;
                     return {new_it, true};
-                } else {
+                }
+                else {
                     it->second->second = std::forward<M>(value);
                     return {it->second, false};
                 }
             }
+
             template <typename M>
             std::pair<iterator, bool> insert_or_assign(key_type&& key, M&& value) {
                 auto it = _map.find(key);
@@ -268,11 +305,13 @@ namespace hwshqtb {
                     auto new_it = --_container.end();
                     _map[new_it->first] = new_it;
                     return {new_it, true};
-                } else {
+                }
+                else {
                     it->second->second = std::forward<M>(value);
                     return {it->second, false};
                 }
             }
+
             template <typename M>
             iterator insert_or_assign(const_iterator hint, const key_type& key, M&& value) {
                 auto it = _map.find(key);
@@ -281,11 +320,13 @@ namespace hwshqtb {
                     auto new_it = --_container.end();
                     _map[key] = new_it;
                     return new_it;
-                } else {
+                }
+                else {
                     it->second->second = std::forward<M>(value);
                     return it->second;
                 }
             }
+
             template <typename M>
             iterator insert_or_assign(const_iterator hint, key_type&& key, M&& value) {
                 auto it = _map.find(key);
@@ -294,7 +335,8 @@ namespace hwshqtb {
                     auto new_it = --_container.end();
                     _map[new_it->first] = new_it;
                     return new_it;
-                } else {
+                }
+                else {
                     it->second->second = std::forward<M>(value);
                     return it->second;
                 }
@@ -311,6 +353,7 @@ namespace hwshqtb {
                 }
                 return {it->second, false};
             }
+
             template <typename... Args>
             iterator emplace_hint(const_iterator hint, Args&&... args) {
                 auto it = _map.find(key_type(std::forward<Args>(args)...));
@@ -334,6 +377,7 @@ namespace hwshqtb {
                 }
                 return {it->second, false};
             }
+
             template <typename... Args>
             std::pair<iterator, bool> try_emplace(key_type&& key, Args&&... args) {
                 auto it = _map.find(key);
@@ -345,6 +389,7 @@ namespace hwshqtb {
                 }
                 return {it->second, false};
             }
+
             template <typename... Args>
             iterator try_emplace(const_iterator hint, const key_type& key, Args&&... args) {
                 auto it = _map.find(key);
@@ -356,6 +401,7 @@ namespace hwshqtb {
                 }
                 return it->second;
             }
+
             template <typename... Args>
             iterator try_emplace(const_iterator hint, key_type&& key, Args&&... args) {
                 auto it = _map.find(key);
@@ -374,18 +420,21 @@ namespace hwshqtb {
                     _container.erase(pos);
                 }
             }
+
             void erase(const_iterator pos) {
                 if (pos != _container.end()) {
                     _map.erase(pos->first);
                     _container.erase(pos);
                 }
             }
+
             void erase(const_iterator first, const_iterator last) {
                 for (auto it = first; it != last; ++it) {
                     _map.erase(it->first);
                 }
                 _container.erase(first, last);
             }
+
             void erase(const key_type& key) {
                 auto it = _map.find(key);
                 if (it != _map.end()) {
@@ -393,6 +442,7 @@ namespace hwshqtb {
                     _map.erase(it);
                 }
             }
+
             template <typename K>
             void erase(K&& key) {
                 auto it = _map.find(std::forward<K>(key));
@@ -410,9 +460,11 @@ namespace hwshqtb {
             iterator begin() noexcept {
                 return _container.begin();
             }
+
             const_iterator begin() const noexcept {
                 return _container.begin();
             }
+
             const_iterator cbegin() const noexcept {
                 return _container.cbegin();
             }
@@ -420,9 +472,11 @@ namespace hwshqtb {
             iterator end() noexcept {
                 return _container.end();
             }
+
             const_iterator end() const noexcept {
                 return _container.end();
             }
+
             const_iterator cend() const noexcept {
                 return _container.cend();
             }
@@ -430,18 +484,23 @@ namespace hwshqtb {
             reverse_iterator rbegin() noexcept {
                 return _container.rbegin();
             }
+
             const_reverse_iterator rbegin() const noexcept {
                 return _container.rbegin();
             }
+
             const_reverse_iterator crbegin() const noexcept {
                 return _container.crbegin();
             }
+
             reverse_iterator rend() noexcept {
                 return _container.rend();
             }
+
             const_reverse_iterator rend() const noexcept {
                 return _container.rend();
             }
+
             const_reverse_iterator crend() const noexcept {
                 return _container.crend();
             }
@@ -449,6 +508,7 @@ namespace hwshqtb {
             size_type count(const key_type& key) const {
                 return _map.count(key);
             }
+
             template <typename K>
             size_type count(const K& key) const {
                 return _map.count(key);
@@ -461,6 +521,7 @@ namespace hwshqtb {
                 }
                 return _container.end();
             }
+
             const_iterator find(const key_type& key) const {
                 auto it = _map.find(key);
                 if (it != _map.end()) {
@@ -468,6 +529,7 @@ namespace hwshqtb {
                 }
                 return _container.end();
             }
+
             template <typename K>
             iterator find(const K& key) {
                 auto it = _map.find(key);
@@ -476,6 +538,7 @@ namespace hwshqtb {
                 }
                 return _container.end();
             }
+
             template <typename K>
             const_iterator find(const K& key) const {
                 auto it = _map.find(key);
@@ -492,6 +555,7 @@ namespace hwshqtb {
                 }
                 return {_container.end(), _container.end()};
             }
+
             std::pair<const_iterator, const_iterator> equal_range(const key_type& key) const {
                 auto it = _map.find(key);
                 if (it != _map.end()) {
@@ -499,6 +563,7 @@ namespace hwshqtb {
                 }
                 return {_container.end(), _container.end()};
             }
+
             template <typename K>
             std::pair<iterator, iterator> equal_range(const K& key) {
                 auto it = _map.find(key);
@@ -507,6 +572,7 @@ namespace hwshqtb {
                 }
                 return {_container.end(), _container.end()};
             }
+
             template <typename K>
             std::pair<const_iterator, const_iterator> equal_range(const K& key) const {
                 auto it = _map.find(key);
@@ -519,7 +585,6 @@ namespace hwshqtb {
         private:
             Container _container;
             Map _map;
-
         };
 
         template <typename Key, typename T, class Container, class Map>

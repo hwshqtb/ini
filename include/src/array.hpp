@@ -17,8 +17,7 @@ namespace hwshqtb {
                     return {sv, true};
                 }
                 value r;
-                if (const auto& [nsv, succeed] = parse(sv, r); sv = nsv, !succeed)
-                    return {sv, false};
+                if (const auto& [nsv, succeed] = parse(sv, r); sv = nsv, !succeed) return {sv, false};
                 v.push_back(r);
                 remove_blank(sv);
                 if (sv.substr(0, 1) == ",") {
@@ -29,7 +28,8 @@ namespace hwshqtb {
                     sv.remove_prefix(1);
                     return {sv, true};
                 }
-                else return {sv, false};
+                else
+                    return {sv, false};
             }
             return {sv, false};
         }

@@ -11,8 +11,7 @@ namespace hwshqtb {
 
         HWSHQTB__INLINE parse_result parse(std::string_view sv) {
             table t;
-            if (const auto& [_, succeed] = parse(sv, t); succeed)
-                return std::make_optional(std::move(t));
+            if (const auto& [_, succeed] = parse(sv, t); succeed) return std::make_optional(std::move(t));
             return std::nullopt;
         }
 
@@ -28,8 +27,7 @@ namespace hwshqtb {
 
         HWSHQTB__INLINE parse_result parse_file(const std::string& path) {
             std::ifstream file(path);
-            if (!file.is_open())
-                return std::nullopt;
+            if (!file.is_open()) return std::nullopt;
             return parse_file(file);
         }
 

@@ -2,9 +2,9 @@
 #define HWSHQTB__INI__GLOBEL_HPP
 
 #ifndef HWSHQTB__NOT_HEADER_ONLY
-#define HWSHQTB__INLINE inline
+    #define HWSHQTB__INLINE inline
 #else
-#define HWSHQTB__INLINE
+    #define HWSHQTB__INLINE
 #endif
 
 #include <cstdint>
@@ -15,9 +15,10 @@
 #include "ordered_map.hpp"
 #include <unordered_map>
 #include <functional>
-#include <charconv>
 #include <utility>
 #include <limits>
+#include <cstdlib>
+#include <cinttypes>
 
 namespace hwshqtb {
     namespace ini {
@@ -54,9 +55,9 @@ namespace hwshqtb {
             key(const char* str):
                 key(std::string(str)) {}
         };
-        
+
         struct key_hash {
-            std::size_t operator()(const key& s)const noexcept {
+            std::size_t operator()(const key& s) const noexcept {
                 return std::hash<std::string>{}(s.name);
             }
         };
@@ -76,18 +77,14 @@ namespace hwshqtb {
         using key_value_pair = std::pair<key, node>;
 
         struct section {
-            container::ordered_map<key, node,
-                std::list<key_value_pair>,
-                std::unordered_map<key, typename std::list<key_value_pair>::iterator, key_hash, key_equal_to>> kvs;
+            container::ordered_map<key, node, std::list<key_value_pair>, std::unordered_map<key, typename std::list<key_value_pair>::iterator, key_hash, key_equal_to>> kvs;
             comment c;
         };
 
         using key_section_pair = std::pair<key, section>;
 
         struct table {
-            container::ordered_map<key, section,
-                std::list<key_section_pair>,
-                std::unordered_map<key, typename std::list<key_section_pair>::iterator, key_hash, key_equal_to>> sections;
+            container::ordered_map<key, section, std::list<key_section_pair>, std::unordered_map<key, typename std::list<key_section_pair>::iterator, key_hash, key_equal_to>> sections;
             comment c;
         };
 
@@ -99,27 +96,19 @@ namespace hwshqtb {
 
             std::function<std::string(integer)> integer_formatter = [](integer v) -> std::string {
                 std::string result(100, '\0');
-                const auto& [ptr, ec] = std::to_chars(result.data(), result.data() + result.size(), v, 10);
-                if (ec == std::errc()) {
-                    result.resize(ptr - result.data());
-                    return result;
-                }
-                return "";
+                int len = snprintf(result.data(), result.size(), "%" PRId64, v);
+                result.resize(len);
+                return result;
             };
 
             std::function<std::string(floating)> floating_formatter = [](floating v) -> std::string {
                 std::string result(400, '\0');
-                const auto& [ptr, ec] = std::to_chars(result.data(), result.data() + result.size(), v);
-                if (ec == std::errc()) {
-                    result.resize(ptr - result.data());
-                    if (result.find_first_of('.') == std::string::npos)
-                        result += ".0";
-                    return result;
-                }
-                return "";
+                int len = snprintf(result.data(), result.size(), "%.2lf", v);
+                result.resize(len);
+                return result;
             };
-
         };
+
         HWSHQTB__INLINE join_format global_format;
 
         struct parse_status {
@@ -171,7 +160,7 @@ namespace hwshqtb {
                 static constexpr std::size_t inner_constructible_index = detail::value_helper<T>::constructible_index;
             };
 
-            template <template <typename, auto...> class C, typename T, auto... Ts>
+            template <template <typename, auto, auto...> class C, typename T, auto... Ts>
             struct value_helper<C<T, Ts...>, std::void_t<decltype(std::begin(std::declval<C<T, Ts...>>())), decltype(std::end(std::declval<C<T, Ts...>>())), std::enable_if_t<!std::is_same_v<std::decay_t<C<T, Ts...>>, string>, int>>>: public value_helper<T> {
                 static constexpr std::size_t same_index = 5;
                 static constexpr std::size_t constructible_index = 4;
@@ -179,7 +168,33 @@ namespace hwshqtb {
             };
 
         }
-        
+
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, std::string& v); // both key and string
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, integer& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, floating& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, boolean& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, comment_upper_part& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, comment_lower_part& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, value& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, key& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, array& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, key_value_pair& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, key_section_pair& v);
+        HWSHQTB__INLINE parse_status parse(std::string_view sv, table& v);
+
+        HWSHQTB__INLINE std::string join(const std::string& v, const join_format& fmt = global_format); // both key and string
+        HWSHQTB__INLINE std::string join(const integer& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const floating& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const boolean& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const comment_upper_part& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const comment_lower_part& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const value& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const key& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const array& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const key_value_pair& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const key_section_pair& v, const join_format& fmt = global_format);
+        HWSHQTB__INLINE std::string join(const table& v, const join_format& fmt = global_format);
+
         template <typename T>
         HWSHQTB__INLINE parse_status parse(std::string_view sv, T& v) {
             constexpr std::size_t constructible_index = detail::value_helper<T>::constructible_index;
@@ -232,32 +247,6 @@ namespace hwshqtb {
                 static_assert(!std::is_same_v<T, T>, "T must be a valid ini type");
             return "";
         }
-
-        HWSHQTB__INLINE parse_status parse(std::string_view sv, std::string& v); // both key and string
-        HWSHQTB__INLINE parse_status parse(std::string_view sv, integer& v);
-        HWSHQTB__INLINE parse_status parse(std::string_view sv, floating& v);
-        HWSHQTB__INLINE parse_status parse(std::string_view sv, boolean& v);
-        HWSHQTB__INLINE parse_status parse(std::string_view sv, comment_upper_part& v);
-        HWSHQTB__INLINE parse_status parse(std::string_view sv, comment_lower_part& v);
-        HWSHQTB__INLINE parse_status parse(std::string_view sv, value& v);
-        HWSHQTB__INLINE parse_status parse(std::string_view sv, key& v);
-        HWSHQTB__INLINE parse_status parse(std::string_view sv, array& v);
-        HWSHQTB__INLINE parse_status parse(std::string_view sv, key_value_pair& v);
-        HWSHQTB__INLINE parse_status parse(std::string_view sv, key_section_pair& v);
-        HWSHQTB__INLINE parse_status parse(std::string_view sv, table& v);
-
-        HWSHQTB__INLINE std::string join(const std::string& v, const join_format& fmt = global_format); // both key and string
-        HWSHQTB__INLINE std::string join(const integer& v, const join_format& fmt = global_format);
-        HWSHQTB__INLINE std::string join(const floating& v, const join_format& fmt = global_format);
-        HWSHQTB__INLINE std::string join(const boolean& v, const join_format& fmt = global_format);
-        HWSHQTB__INLINE std::string join(const comment_upper_part& v, const join_format& fmt = global_format);
-        HWSHQTB__INLINE std::string join(const comment_lower_part& v, const join_format& fmt = global_format);
-        HWSHQTB__INLINE std::string join(const value& v, const join_format& fmt = global_format);
-        HWSHQTB__INLINE std::string join(const key& v, const join_format& fmt = global_format);
-        HWSHQTB__INLINE std::string join(const array& v, const join_format& fmt = global_format);
-        HWSHQTB__INLINE std::string join(const key_value_pair& v, const join_format& fmt = global_format);
-        HWSHQTB__INLINE std::string join(const key_section_pair& v, const join_format& fmt = global_format);
-        HWSHQTB__INLINE std::string join(const table& v, const join_format& fmt = global_format);
 
         HWSHQTB__INLINE bool is_space(char c) {
             return c == 0x09 || c == 0x20;

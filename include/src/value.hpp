@@ -13,12 +13,15 @@ namespace hwshqtb {
         public:
             value():
                 _v(nullptr) {}
+
             value(const value& v):
                 _v(v._v == nullptr ? nullptr : new base_type(*v._v)) {}
-            value(value&& v)noexcept:
+
+            value(value&& v) noexcept:
                 _v(std::exchange(v._v, nullptr)) {}
+
             template <typename T>
-            value(T&& v) :
+            value(T&& v):
                 _v(nullptr) {
                 reset(std::forward<T>(v));
             }
@@ -36,12 +39,14 @@ namespace hwshqtb {
                     *_v = *v._v;
                 return *this;
             }
-            value& operator=(value&& v)noexcept {
+
+            value& operator=(value&& v) noexcept {
                 delete _v;
                 _v = std::exchange(v._v, nullptr);
                 return *this;
             }
-            template <typename T>
+
+            template <typename T, std::enable_if_t<!std::is_same_v<std::decay_t<T>, value>, int> = 0>
             value& operator=(T&& v) {
                 reset(std::forward<T>(v));
                 return *this;
@@ -53,12 +58,12 @@ namespace hwshqtb {
             }
 
             template <typename T, std::enable_if_t<(detail::value_helper<T>::same_index < 5), int> = 0>
-            const auto& ref()const {
+            const auto& ref() const {
                 return std::get<T>(*_v);
             }
 
             template <typename T>
-            auto get()const {
+            auto get() const {
                 return std::visit([](auto&& v) {
                     using R = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, R>)
@@ -74,8 +79,7 @@ namespace hwshqtb {
                         else if constexpr (std::is_same_v<R, string>) {
                             T r;
                             const auto& [_, succeed] = parse((std::string_view)v, r);
-                            if (succeed)
-                                return std::make_optional(r);
+                            if (succeed) return std::make_optional(r);
                             return std::optional<T>{std::nullopt};
                         }
                         else {
@@ -86,50 +90,49 @@ namespace hwshqtb {
             }
 
             template <typename T>
-            auto value_or(T&& v)const {
+            auto value_or(T&& v) const {
                 return get<std::decay_t<T>>().value_or(v);
             }
 
             template <class F>
-            auto visit(F&& f)const {
+            auto visit(F&& f) const {
                 return std::visit(std::forward<F>(f), *_v);
             }
 
             template <typename T>
-            bool is_type()const {
-                if (_v == nullptr)
-                    return false;
+            bool is_type() const {
+                if (_v == nullptr) return false;
                 return std::holds_alternative<T>(*_v);
             }
 
-#define JUDGE_TYPE(T) \
-bool is_##T()const { \
-    return is_type<T>(); \
-}
+#define JUDGE_TYPE(T)        \
+    bool is_##T() const {    \
+        return is_type<T>(); \
+    }
 
             JUDGE_TYPE(string)
-                JUDGE_TYPE(integer)
-                JUDGE_TYPE(floating)
-                JUDGE_TYPE(boolean)
-                JUDGE_TYPE(array)
+            JUDGE_TYPE(integer)
+            JUDGE_TYPE(floating)
+            JUDGE_TYPE(boolean)
+            JUDGE_TYPE(array)
 #undef JUDGE_TYPE
 
-#define TYPE(T) \
-T& as_##T() { \
-    return ref<T>(); \
-}\
-const T& as_##T()const {\
-    return ref<T>(); \
-}
+#define TYPE(T)               \
+    T& as_##T() {             \
+        return ref<T>();      \
+    }                         \
+    const T& as_##T() const { \
+        return ref<T>();      \
+    }
 
-                TYPE(string)
-                TYPE(integer)
-                TYPE(floating)
-                TYPE(boolean)
-                TYPE(array)
+            TYPE(string)
+            TYPE(integer)
+            TYPE(floating)
+            TYPE(boolean)
+            TYPE(array)
 #undef TYPE
 
-                template <typename T>
+            template <typename T>
             void set(T&& v) {
                 using RT = std::decay_t<T>;
                 constexpr std::size_t same_index = detail::value_helper<RT>::same_index;
@@ -139,14 +142,17 @@ const T& as_##T()const {\
                     return;
                 }
                 else if constexpr (same_index == 3) {
-                    if (is_integer() && parse((std::string_view)v, as_integer()).succeed)
-                        return;
-                    else if (is_floating() && parse((std::string_view)v, as_floating()).succeed)
-                        return;
-                    else if (is_boolean() && parse((std::string_view)v, as_boolean()).succeed)
-                        return;
-                    else if (is_array() && parse((std::string_view)v, as_array()).succeed)
-                        return;
+                    if (is_integer() && parse((std::string_view)v, as_integer()).succeed) return;
+                    if (is_floating() && parse((std::string_view)v, as_floating()).succeed) return;
+                    if (is_boolean()) {
+                        if (parse((std::string_view)v, as_boolean()).succeed) return;
+                        floating f;
+                        if (parse((std::string_view)v, f).succeed) {
+                            as_boolean() = f != 0;
+                            return;
+                        }
+                    }
+                    if (is_array() && parse((std::string_view)v, as_array()).succeed) return;
                     if (_v == nullptr)
                         _v = new base_type(std::in_place_type_t<string>{}, std::forward<T>(v));
                     else
@@ -177,8 +183,7 @@ const T& as_##T()const {\
                             *_v = array{};
                     }
                     auto& arr = as_array();
-                    if (arr.size() == 0)
-                        arr.emplace_back(*v.begin());
+                    if (arr.size() == 0) arr.emplace_back(*v.begin());
                     arr.resize(v.size(), arr.front());
                     for (std::size_t index = 0; index < v.size(); ++index) {
                         arr[index].set(*(std::begin(v) + index));
@@ -204,8 +209,7 @@ const T& as_##T()const {\
                         _v->emplace<constructible_index>(v);
                 }
                 else if constexpr (constructible_index == 4) {
-                    if (_v == nullptr)
-                        _v = new base_type(array{});
+                    if (_v == nullptr) _v = new base_type(array{});
                     auto& arr = as_array();
                     arr.clear();
                     for (const auto& item : v)
@@ -223,20 +227,20 @@ const T& as_##T()const {\
 
         private:
             base_type* _v;
-
         };
 
         parse_status parse(std::string_view sv, value& v) {
             v.clear();
 
-#define PARSE(T) \
-do { \
-    T r; \
-    if (const auto& [nsv, succeed] = parse(sv, r); succeed) { \
-        v = r; \
-        return {nsv, true}; \
-    } \
-} while (0)
+#define PARSE(T)                                                  \
+    do {                                                          \
+        T r;                                                      \
+        if (const auto& [nsv, succeed] = parse(sv, r); succeed) { \
+            v = r;                                                \
+            return {nsv, true};                                   \
+        }                                                         \
+    }                                                             \
+    while (0)
             PARSE(array);
             PARSE(string);
             PARSE(boolean);

@@ -7,22 +7,19 @@ namespace hwshqtb {
     namespace ini {
         parse_status parse(std::string_view sv, comment_upper_part& v) {
             v.contents.clear();
-            if (sv.empty())
-                return {sv, true};
+            if (sv.empty()) return {sv, true};
             remove_blank(sv);
-            if (sv.substr(0, 2) == "#!")
-                return {sv, false};
+            if (sv.substr(0, 2) == "#!") return {sv, false};
             while (true) {
-                if (sv.substr(0, 1) != "#")
-                    break;
+                if (sv.substr(0, 1) != "#") break;
                 sv.remove_prefix(1);
-                if (sv.substr(0, 1) == "!")
-                    sv.remove_prefix(1);
+                if (sv.substr(0, 1) == "!") sv.remove_prefix(1);
                 std::size_t end = sv.find_first_of('\n', 0);
                 v.contents.emplace_back(sv.substr(0, end));
                 if (end == std::string_view::npos)
                     sv.remove_prefix(sv.size());
-                else sv.remove_prefix(end + 1);
+                else
+                    sv.remove_prefix(end + 1);
                 remove_blank(sv);
             }
             return {sv, true};
@@ -38,8 +35,7 @@ namespace hwshqtb {
         parse_status parse(std::string_view sv, comment_lower_part& v) {
             v.contents.clear();
             v.same_line = false;
-            if (sv.empty())
-                return {sv, true};
+            if (sv.empty()) return {sv, true};
             remove_space(sv);
             if (sv.substr(0, 2) != "#!") {
                 if (sv.substr(0, 1) == "#") {
@@ -49,7 +45,8 @@ namespace hwshqtb {
                     v.contents.emplace_back(sv.substr(0, end));
                     if (end == std::string_view::npos)
                         sv.remove_prefix(sv.size());
-                    else sv.remove_prefix(end + 1);
+                    else
+                        sv.remove_prefix(end + 1);
                 }
                 remove_blank(sv);
             }
@@ -59,15 +56,15 @@ namespace hwshqtb {
                 v.contents.emplace_back(sv.substr(0, end));
                 if (end == std::string_view::npos)
                     sv.remove_prefix(sv.size());
-                else sv.remove_prefix(end + 1);
+                else
+                    sv.remove_prefix(end + 1);
                 remove_blank(sv);
             }
             return {sv, true};
         }
 
         std::string join(const comment_lower_part& v, const join_format& fmt) {
-            if (v.contents.empty())
-                return "\n";
+            if (v.contents.empty()) return "\n";
             std::string result;
             std::size_t index = 0;
             if (v.same_line) {
