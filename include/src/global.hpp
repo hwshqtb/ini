@@ -91,8 +91,11 @@ namespace hwshqtb {
         struct join_format {
             char quote = '\"';
             bool space_around_eq = true;
-            bool array_element_newline = true;
-            mutable bool kv_inline = false;
+            bool array_element_newline = false;
+            mutable bool kv_inline = true;
+            mutable std::size_t indent = -1;
+            std::string indent_string = "    ";
+            mutable std::size_t comment_column = -1;
 
             std::function<std::string(integer)> integer_formatter = [](integer v) -> std::string {
                 std::string result(100, '\0');
@@ -106,6 +109,10 @@ namespace hwshqtb {
                 int len = snprintf(result.data(), result.size(), "%.2lf", v);
                 result.resize(len);
                 return result;
+            };
+
+            std::function<std::size_t(std::string_view)> string_length_calculator = [](std::string_view sv) -> std::size_t {
+                return sv.size();
             };
         };
 

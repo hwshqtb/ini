@@ -8,9 +8,10 @@ int main() {
 [section] # The same line comment
 #! section lower comment
 # key comment
-arr_1 = [ [1, 2], ["str"] ] # The same line comment
+arr_1 = [ [1, 2], ["str"], [] ] # The same line comment
 #! key lower comment
-" escape sequence \b\t\f\n\v\u1000 etc" = "\b\t\f\n\v\u1000"
+" escape sequence \b\t\f\n\v\u1000 etc" = "\b\t\f\n\v\u1000" # The same line comment
+#! key lower comment2
 
 [section2]
 else = "else"
@@ -18,10 +19,15 @@ else = "else"
 
 # file comment part2)";
     auto table = hwshqtb::ini::parse(content).value();
-    std::cout << hwshqtb::ini::join(table) << std::endl;
 
     hwshqtb::ini::join_format fmt;
-    fmt.array_element_newline = false;
-    std::cout << "---- With array_element_newline false ----" << std::endl;
+    // fmt.comment_column = 0;
+    // fmt.indent = 0;
+    std::cout << hwshqtb::ini::join(table, fmt) << std::endl;
+
+    std::cout << "--------" << std::endl;
+    fmt.comment_column = 80;
+    fmt.indent = 0;
+    fmt.array_element_newline = true;
     std::cout << hwshqtb::ini::join(table, fmt);
 }

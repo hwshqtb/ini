@@ -28,7 +28,15 @@ namespace hwshqtb {
 
         std::string join(const key_value_pair& v, const join_format& fmt) {
             std::string lower = join(v.second.second.lower, fmt);
-            return join(v.second.second.upper, fmt) + join(v.first, fmt) + (fmt.space_around_eq ? " = " : "=") + join(v.second.first, fmt) + (lower.substr(0, 2) == "#!" ? "\n" : "") + lower;
+            if (fmt.indent != static_cast<std::size_t>(-1)) ++fmt.indent;
+            std::string kv = join(v.second.second.upper, fmt) + join(v.first, fmt) + (fmt.space_around_eq ? " = " : "=") + join(v.second.first, fmt);
+            if (fmt.comment_column != static_cast<std::size_t>(-1)) {
+                if (lower.substr(0, 2) != "#!" && lower.substr(0, 1) == "#")
+                    fmt.comment_column = kv.size() + 1;
+                else
+                    fmt.comment_column = -1;
+            }
+            return kv + (lower.substr(0, 2) == "#!" ? "\n" : " ") + lower;
         }
 
         parse_status parse(std::string_view sv, key_section_pair& v) {
@@ -64,8 +72,28 @@ namespace hwshqtb {
 
         std::string join(const key_section_pair& v, const join_format& fmt) {
             std::string result = join(v.second.c.upper, fmt) + '[' + join(v.first, fmt) + ']' + join(v.second.c.lower);
-            for (const auto& kv : v.second.kvs)
+            std::size_t old_comment_colummn = fmt.comment_column, comment_min_colummn = fmt.comment_column;
+            std::vector<std::size_t> comment_pos;
+            std::vector<std::size_t> kv_size;
+            std::size_t current = result.size();
+            for (const auto& kv : v.second.kvs) {
                 result += join(kv, fmt);
+                if (fmt.comment_column != static_cast<std::size_t>(-1)) {
+                    std::size_t pos = current + fmt.comment_column;
+                    comment_pos.push_back(pos);
+                    std::size_t line_pos = result.find_last_of('\n', pos);
+                    kv_size.push_back(fmt.string_length_calculator(((std::string_view)result).substr(line_pos + 1, pos - line_pos - 1)));
+                    comment_min_colummn = std::max(comment_min_colummn, kv_size.back());
+                    fmt.comment_column = old_comment_colummn;
+                }
+                current = result.size();
+            }
+            if (old_comment_colummn != static_cast<std::size_t>(-1)) {
+                for (std::size_t i = comment_pos.size(); i-- > 0;) {
+                    result.insert(comment_pos[i], comment_min_colummn - kv_size[i], ' ');
+                }
+            }
+            fmt.comment_column = comment_min_colummn;
             result += "\n";
             return result;
         }

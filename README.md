@@ -7,9 +7,11 @@ a special ini parser that parse a ml compromise between original ini and toml
 
 ## highlights
 
-- parse and control comment
-- (partial) control join format 
-- contain orders\ between keys
+- parse and change comment
+- (partial) control join format
+  - indent for key, array
+  - comment's alignment
+- contain orders between keys
 
 ## aimed ini format
 ```ini

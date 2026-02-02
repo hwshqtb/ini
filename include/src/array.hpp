@@ -35,18 +35,36 @@ namespace hwshqtb {
         }
 
         std::string join(const array& v, const join_format& fmt) {
-            std::string result = "[ ";
+            std::string result = "[";
+            result += fmt.array_element_newline ? "\n" : " ";
+            bool old = std::exchange(fmt.kv_inline, true);
             for (const auto& r : v) {
-                bool old = std::exchange(fmt.kv_inline, true);
+                if (fmt.array_element_newline) {
+                    if (fmt.indent != static_cast<std::size_t>(-1))
+                        for (std::size_t i = 0; i < fmt.indent; ++i)
+                            result += fmt.indent_string;
+                }
+                if (fmt.indent != static_cast<std::size_t>(-1))
+                    ++fmt.indent;
                 result += join(r, fmt) + ",";
-                fmt.kv_inline = old;
-                result += (fmt.array_element_newline && !old) ? "\n" : " ";
+                if (fmt.indent != static_cast<std::size_t>(-1))
+                    --fmt.indent;
+                result += fmt.array_element_newline ? "\n" : " ";
             }
+            fmt.kv_inline = old;
             if (v.size()) {
                 result.pop_back();
                 result.pop_back();
-                result.push_back(' ');
             }
+            if (fmt.array_element_newline) {
+                if (v.size())
+                    result += "\n";
+                if (fmt.indent != static_cast<std::size_t>(-1))
+                    for (std::size_t i = 0; i < fmt.indent - 1; ++i)
+                        result += fmt.indent_string;
+            }
+            else
+                result += " ";
             result += "]";
             return result;
         }

@@ -68,7 +68,7 @@ namespace hwshqtb {
             std::string result;
             std::size_t index = 0;
             if (v.same_line) {
-                result = " #" + v.contents.front() + "\n";
+                result = "#" + v.contents.front() + "\n";
                 index = 1;
             }
             while (index < v.contents.size()) {
