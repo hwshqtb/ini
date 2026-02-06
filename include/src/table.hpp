@@ -36,6 +36,7 @@ namespace hwshqtb {
                 else
                     fmt.comment_column = -1;
             }
+            if (fmt.indent != static_cast<std::size_t>(-1)) --fmt.indent;
             return kv + (lower.substr(0, 2) == "#!" ? "\n" : " ") + lower;
         }
 
@@ -84,8 +85,8 @@ namespace hwshqtb {
                     std::size_t line_pos = result.find_last_of('\n', pos);
                     kv_size.push_back(fmt.string_length_calculator(((std::string_view)result).substr(line_pos + 1, pos - line_pos - 1)));
                     comment_min_colummn = std::max(comment_min_colummn, kv_size.back());
-                    fmt.comment_column = old_comment_colummn;
                 }
+                fmt.comment_column = old_comment_colummn;
                 current = result.size();
             }
             if (old_comment_colummn != static_cast<std::size_t>(-1)) {
@@ -93,7 +94,6 @@ namespace hwshqtb {
                     result.insert(comment_pos[i], comment_min_colummn - kv_size[i], ' ');
                 }
             }
-            fmt.comment_column = comment_min_colummn;
             result += "\n";
             return result;
         }
